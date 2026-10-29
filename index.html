@@ -1,0 +1,2313 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#7B0F28">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Contrôle parvis">
+<title>Contrôle parvis</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icone-180.png">
+<style>
+html{-webkit-text-size-adjust:100%}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>Contrôle Parvis RAF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Thème clair unique, assumé : la page est lue en plein jour sur le parvis. */
+:root{
+  color-scheme:light;
+  --ground:#FBF7F2; --surface:#FFFFFF; --surface-2:#F4EDE3; --sunken:#EFE6D9;
+  --line:#E3D8C7; --line-strong:#CFC0AB;
+  --ink:#241A17; --ink-2:#6B5C53; --ink-3:#9A8A7E;
+  --brand:#7B0F28; --brand-fg:#FDF6EC; --or:#B8871F;
+  --ok:#2C6E4E; --ok-bg:#E4F0E7; --ok-line:#9CC4AB;
+  --ko:#C5301A; --ko-bg:#FBE7E2; --ko-line:#E0A092;
+  --na:#8A7A6E; --na-bg:#EDE6DB; --na-line:#C8BAA9;
+  --shadow:0 1px 2px rgba(60,35,20,.06), 0 4px 14px rgba(60,35,20,.05);
+  --r:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+.wrap{max-width:600px;margin:0 auto;padding-bottom:76px}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--or);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0;opacity:0}
+
+/* ---------- Bandeau haut ---------- */
+.topbar{position:sticky;top:0;z-index:30;background:var(--brand);color:var(--brand-fg);
+  border-bottom:2px solid var(--or)}
+.topbar .inner{max-width:600px;margin:0 auto;padding:10px 14px 12px;
+  display:flex;flex-direction:column;gap:9px}
+.crest{display:flex;align-items:center;gap:10px}
+.crest h1{font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;
+  font-size:20px;letter-spacing:.045em;text-transform:uppercase;margin:0;line-height:1;flex:1}
+.xlsbtn{background:var(--or);color:#241A17;border:none;border-radius:7px;
+  font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:13px;
+  letter-spacing:.07em;text-transform:uppercase;padding:7px 11px;white-space:nowrap}
+.matchrow{display:flex;gap:6px;align-items:stretch}
+.navm{flex:0 0 auto;width:40px;background:rgba(255,255,255,.10);color:var(--brand-fg);
+  border:1px solid rgba(255,255,255,.28);border-radius:var(--r);padding:0;
+  font-family:"Barlow Condensed",sans-serif;font-size:24px;line-height:1;
+  display:flex;align-items:center;justify-content:center}
+.navm:active{background:rgba(255,255,255,.2)}
+.navm:disabled{opacity:.28}
+.mpick{flex:1;min-width:0;background:rgba(255,255,255,.10);color:var(--brand-fg);
+  border:1px solid rgba(255,255,255,.28);border-radius:var(--r);
+  padding:8px 10px;display:flex;align-items:center;gap:9px;text-align:left}
+.mpick:active{background:rgba(255,255,255,.2)}
+.mpick .mj{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:19px;
+  letter-spacing:.03em;flex:0 0 auto;line-height:1}
+.mpick .mtxt{flex:1;min-width:0;font-size:13px;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.92}
+.catbadge{display:flex;align-items:center;padding:4px 9px;border-radius:6px;
+  font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:12.5px;
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;border:1px solid transparent;
+  flex:0 0 auto;line-height:1}
+.cat-OR{background:#C99C33;color:#2A1A06;border-color:#E3BE68}
+.cat-ARGENT{background:#B9B2AA;color:#241A17;border-color:#D6D0C9}
+.cat-BRONZE{background:#9A6A44;color:#FBF1E6;border-color:#B98A62}
+
+/* ---------- Feuille de choix du match ---------- */
+.sheet{position:fixed;inset:0;z-index:60;background:rgba(24,12,9,.55);
+  display:flex;align-items:flex-end;justify-content:center}
+.sheet .panel{width:100%;max-width:600px;max-height:82vh;overflow-y:auto;
+  background:var(--surface);border-radius:14px 14px 0 0;
+  box-shadow:0 -8px 30px rgba(0,0,0,.3);-webkit-overflow-scrolling:touch}
+.sheet h3{margin:0;position:sticky;top:0;z-index:1;background:var(--surface-2);
+  border-bottom:1px solid var(--line);padding:13px;
+  font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:15px;
+  letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.sheet h3 button{margin-left:auto;background:none;border:none;color:var(--ink-2);
+  font-size:24px;line-height:1;padding:0 6px}
+.mrow{display:flex;align-items:center;gap:10px;width:100%;padding:13px;
+  border:none;border-bottom:1px solid var(--line);background:var(--surface);
+  text-align:left;font-size:14px;color:var(--ink)}
+.mrow:last-child{border-bottom:none}
+.mrow[aria-current="true"]{background:var(--sunken)}
+.mrow .j{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  color:var(--ink-2);width:32px;flex:0 0 auto}
+.mrow .lbl{flex:1;min-width:0;font-weight:500}
+.mrow .lbl small{display:block;color:var(--ink-3);font-size:11.5px;font-weight:400;
+  font-family:"IBM Plex Mono",monospace;margin-top:2px}
+
+/* ---------- Lieu et onglets stands ---------- */
+.lieux{display:flex;gap:4px;background:rgba(0,0,0,.2);border-radius:8px;padding:3px}
+.lieux button{flex:1;border:none;background:transparent;color:var(--brand-fg);
+  border-radius:6px;padding:7px 8px;font-family:"Barlow Condensed",sans-serif;
+  font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.7}
+.lieux button[aria-selected="true"]{background:var(--brand-fg);color:var(--brand);opacity:1}
+.stands{display:flex;gap:6px;overflow-x:auto;padding:2px 0 1px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.stands::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);
+  color:var(--brand-fg);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:500;
+  display:flex;align-items:center;gap:6px;white-space:nowrap}
+.chip[aria-selected="true"]{background:var(--brand-fg);color:var(--brand);border-color:var(--brand-fg);font-weight:600}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.3;flex:0 0 auto}
+.chip .dot.done{background:#4FBE87;opacity:1}
+.chip .dot.warn{background:#FF6B4A;opacity:1}
+.chip .dot.part{background:#E3BE68;opacity:1}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- Fiche exposant ---------- */
+.verdict{margin:12px 14px 0;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.verdict .head{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)}
+.vstatus{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:17px;
+  letter-spacing:.05em;text-transform:uppercase;line-height:1.1;flex:1;text-wrap:balance}
+.v-ok{color:var(--ok)} .v-ko{color:var(--ko)} .v-wait{color:var(--ink-3)}
+.counter{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  color:var(--ink-2);background:var(--sunken);border-radius:6px;padding:4px 8px;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.expname{display:block;width:100%;border:none;background:transparent;color:var(--ink);
+  font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:23px;letter-spacing:.01em;
+  padding:10px 13px 12px}
+.expname::placeholder{color:var(--ink-3);font-style:italic}
+.standnom{display:flex;align-items:center;gap:9px;padding:0 13px 12px}
+.standnom span{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-3);flex:0 0 auto}
+.standnom input{flex:1;min-width:0;border:1px dashed var(--line-strong);background:transparent;
+  color:var(--ink-2);border-radius:7px;padding:6px 9px;font:inherit;font-size:13px}
+.standnom input::placeholder{color:var(--ink-3);font-style:italic}
+.chip.plus{background:transparent;border-style:dashed;font-weight:600}
+
+/* ---------- Sections de critères ---------- */
+section.bloc{margin:14px 14px 0;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.blochead{display:flex;align-items:center;gap:10px;padding:11px 13px;
+  background:var(--surface-2);border-bottom:1px solid var(--line)}
+.blochead .n{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;
+  color:var(--brand-fg);background:var(--brand);border-radius:5px;padding:3px 7px;flex:0 0 auto}
+.blochead h2{margin:0;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:16px;
+  letter-spacing:.06em;text-transform:uppercase;flex:1;line-height:1.15}
+.allok{width:100%;border:none;border-bottom:1px solid var(--line);background:var(--ok-bg);
+  color:var(--ok);font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:14px;
+  letter-spacing:.08em;text-transform:uppercase;padding:12px 13px;text-align:left;
+  display:flex;align-items:center;gap:10px}
+.allok:active{filter:brightness(.95)}
+.allok .sub{font-family:"IBM Plex Sans",sans-serif;font-weight:400;font-size:11px;
+  letter-spacing:0;text-transform:none;color:var(--ink-2);margin-left:auto;text-align:right}
+
+.supin{display:flex;align-items:center;gap:9px}
+.supin input{flex:1;min-width:0;min-height:44px;border:1px solid var(--line-strong);
+  border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;
+  font-size:16px;padding:0 11px}
+.supin span{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:16px;
+  color:var(--ink-2);letter-spacing:.05em}
+.bonusmark{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:#8A6A12;background:#FBF1DC;border:1px solid #E3CE95;
+  border-radius:4px;padding:2px 5px;margin-left:7px;vertical-align:2px}
+.row{padding:11px 13px 12px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row.is-ko{background:var(--ko-bg)}
+.rowtxt{font-size:14px;line-height:1.4;margin-bottom:9px}
+.seg{display:grid;grid-template-columns:1fr 1fr 46px 40px 40px;gap:5px}
+.seg button,.seg .ico{min-height:44px;border:1px solid var(--line-strong);background:var(--surface);
+  border-radius:8px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:13.5px;
+  letter-spacing:.03em;text-transform:uppercase;color:var(--ink-2);
+  display:flex;align-items:center;justify-content:center;transition:transform .06s;
+  padding:0;text-align:center}
+.seg button:active,.seg .ico:active{transform:scale(.96)}
+.seg button[aria-pressed="true"][data-v="ok"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button[aria-pressed="true"][data-v="ko"]{background:var(--ko);border-color:var(--ko);color:#fff}
+.seg button[aria-pressed="true"][data-v="na"]{background:var(--na);border-color:var(--na);color:#fff}
+.seg .ico{font-size:17px;line-height:1;border-style:dashed;cursor:pointer;
+  -webkit-user-select:none;user-select:none}
+.seg .ico.on{border-style:solid;border-color:var(--or);background:#FBF1DC}
+/* Le champ fichier est superposé à l'icône, transparent mais bien présent :
+   les navigateurs mobiles refusent d'ouvrir le sélecteur d'un champ masqué. */
+.seg .icophoto{position:relative;overflow:hidden}
+.seg .icophoto input{position:absolute;top:0;left:0;width:100%;height:100%;
+  opacity:0;cursor:pointer;font-size:0;padding:0;margin:0;border:0}
+
+.thumb{margin-top:9px;display:flex;align-items:center;gap:10px;
+  background:var(--sunken);border:1px solid var(--line);border-radius:8px;padding:7px}
+.thumb img{width:64px;height:64px;object-fit:cover;border-radius:6px;flex:0 0 auto;
+  border:1px solid var(--line-strong);background:var(--surface-2)}
+.thumb .meta{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-2)}
+.thumb .meta b{display:block;font-family:"IBM Plex Sans",sans-serif;font-size:12.5px;
+  color:var(--ink);font-weight:500;margin-bottom:2px}
+.thumb .del{background:none;border:1px solid var(--ko-line);color:var(--ko);border-radius:7px;
+  padding:7px 10px;font-size:12px;flex:0 0 auto}
+.note{width:100%;margin-top:9px;border:1px solid var(--or);background:var(--surface);
+  color:var(--ink);border-radius:8px;padding:9px 10px;font:inherit;font-size:14px;
+  resize:vertical;min-height:52px}
+.note::placeholder{color:var(--ink-3)}
+
+/* ---------- Export ---------- */
+.pad{padding:13px}
+.exline{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-2);background:var(--sunken);
+  border-radius:5px;padding:5px 8px;font-variant-numeric:tabular-nums}
+.tag b{color:var(--ink);font-weight:600}
+.bigbtn{width:100%;min-height:50px;border:none;border-radius:9px;background:var(--brand);
+  color:var(--brand-fg);font-family:"Barlow Condensed",sans-serif;font-weight:700;
+  font-size:16px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:9px;text-align:center}
+.bigbtn:disabled{opacity:.55}
+.bigbtn.alt{background:var(--surface);color:var(--ink);border:1px solid var(--line-strong)}
+.filewrap{position:relative;overflow:hidden;display:block}
+.filewrap input{position:absolute;top:0;left:0;width:100%;height:100%;
+  opacity:0;cursor:pointer;font-size:0;padding:0;margin:0;border:0}
+.pileb{display:flex;flex-direction:column;gap:9px}
+.hint{font-size:12px;color:var(--ink-2);margin:10px 0 0;line-height:1.5}
+.hint.err{color:var(--ko);font-weight:500}
+
+/* ---------- Barre de sauvegarde ---------- */
+.saveline{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);
+  border-top:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:9px;
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-2);
+  box-shadow:0 -2px 12px rgba(0,0,0,.08)}
+.saveline .led{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
+.saveline .led.on{background:var(--ok)} .saveline .led.off{background:var(--or)}
+.saveline .led.bad{background:var(--ko)}
+.saveline b{color:var(--ink);font-weight:600}
+.saveline span#savetxt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+footer{padding:20px 14px 10px;color:var(--ink-3);font-size:11.5px;line-height:1.65}
+
+/* ---------- Envoi au Sheet ---------- */
+.envoi{display:flex;align-items:center;gap:9px;margin:0 0 12px;padding:10px 12px;border-radius:8px;
+  font-size:13.5px;line-height:1.4;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2)}
+.envoi .pt{width:10px;height:10px;border-radius:50%;flex:0 0 auto;background:var(--ink-3)}
+.envoi.recu{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+.envoi.recu .pt{background:var(--ok)}
+.envoi.attente{background:#FBF1DC;border-color:#E6C989;color:#8A6412}
+.envoi.attente .pt{background:var(--or)}
+.envoi b{font-weight:600}
+#envresume{margin:12px 0 0}
+.chip[data-env="recue"]::after{content:"✓";color:#4FBE87;font-weight:700}
+.chip[data-env="attente"]::after{content:"↑";color:#E3BE68;font-weight:700}
+.chip[aria-selected="true"][data-env="recue"]::after{color:var(--ok)}
+.chip[aria-selected="true"][data-env="attente"]::after{color:var(--or)}
+.reglages label{display:block;font-size:12px;color:var(--ink-2);margin:0 0 4px}
+.reglages input{width:100%;box-sizing:border-box;padding:10px;margin:0 0 10px;border:1px solid var(--line-strong);
+  border-radius:8px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink)}
+</style>
+
+<div class="topbar">
+  <div class="inner">
+    <div class="crest">
+      <h1>Contrôle parvis</h1>
+      <button class="xlsbtn" id="quickxls">Export Excel</button>
+    </div>
+    <div class="matchrow">
+      <button class="navm" id="prevm" aria-label="Match précédent">‹</button>
+      <button class="mpick" id="mpick" aria-haspopup="dialog" aria-expanded="false">
+        <span class="mj" id="mj">J1</span>
+        <span class="mtxt" id="mtxt"></span>
+        <span class="catbadge" id="catbadge">OR</span>
+      </button>
+      <button class="navm" id="nextm" aria-label="Match suivant">›</button>
+    </div>
+    <div class="lieux" id="lieux" role="tablist" aria-label="Lieu du contrôle"></div>
+    <div class="stands" id="stands" role="tablist" aria-label="Stands"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-label="Choisir le match"></div>
+
+
+<div class="wrap">
+  <div class="verdict">
+    <div class="head">
+      <div class="vstatus v-wait" id="vstatus">Contrôle à démarrer</div>
+      <div class="counter" id="counter">0/19</div>
+    </div>
+    <input class="expname" id="expname" placeholder="Nom de l'exposant" aria-label="Nom de l'exposant">
+    <label class="standnom"><span>Stand</span>
+      <input id="standnom" placeholder="Type de stand" aria-label="Nom du stand">
+    </label>
+  </div>
+
+  <div id="blocs"></div>
+
+  <section class="bloc" id="envbloc">
+    <div class="blochead"><span class="n">✓</span><h2>Valider le stand</h2></div>
+    <div class="pad">
+      <div class="envoi" id="envetat"><span class="pt"></span><span id="envtxt">Pas encore validé</span></div>
+      <button class="bigbtn" id="valbtn">Valider le stand</button>
+      <p class="hint" id="envhint"></p>
+      <div class="exline" id="envresume"></div>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <div class="blochead"><span class="n">XLS</span><h2>Export Excel</h2></div>
+    <div class="pad">
+      <div class="exline" id="exline"></div>
+      <div class="pileb">
+        <button class="bigbtn" id="exbtn">Générer le fichier Excel</button>
+        <button class="bigbtn alt" id="photobtn">Exporter les photos en ZIP</button>
+      </div>
+      <p class="hint" id="exhint">Trois onglets : Suivi conformité, Détail critère par critère, et Synthèse du droit à la remise. Les photos sont intégrées dans les cellules du Détail.</p>
+    </div>
+  </section>
+
+  <section class="bloc" id="regbloc">
+    <div class="blochead"><span class="n">⚙</span><h2>Réglages de l'envoi au Sheet</h2></div>
+    <div class="pad reglages">
+      <label for="regurl">Adresse du script Google (se termine par /exec)</label>
+      <input type="url" id="regurl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+      <label for="regcle">Clé secrète</label>
+      <input type="password" id="regcle" autocomplete="off">
+      <button class="bigbtn alt" id="regtest">Enregistrer et tester</button>
+      <p class="hint" id="reghint">Ces deux réglages restent dans ce téléphone. Ils ne sont jamais publiés avec l'appli.</p>
+    </div>
+  </section>
+
+  <section class="bloc">
+    <div class="blochead"><span class="n">↔</span><h2>Transfert téléphone / ordinateur</h2></div>
+    <div class="pad">
+      <div class="pileb">
+        <button class="bigbtn alt" id="savbtn">Exporter la sauvegarde</button>
+        <label class="bigbtn alt filewrap">Importer une sauvegarde
+          <input type="file" accept=".json,application/json" id="impfile" aria-label="Importer une sauvegarde">
+        </label>
+      </div>
+      <p class="hint" id="savhint">La sauvegarde contient toutes les fiches et toutes les photos. Exporte-la depuis le téléphone après le match, puis importe-la sur l'ordinateur pour y générer l'Excel.</p>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<div class="saveline">
+  <span class="led" id="led"></span>
+  <span id="savetxt">Chargement…</span>
+</div>
+
+<script>
+"use strict";
+
+/* ================= Référentiel : calendrier et rotation 26/27 ================= */
+var MATCHS = [
+  {j:"J1", d:"2026-08-08", jour:"Samedi",   adv:"LAVAL",              cat:"OR"},
+  {j:"J4", d:"2026-08-28", jour:"Vendredi", adv:"PAU",                cat:"ARGENT"},
+  {j:"J6", d:"2026-09-11", jour:"Vendredi", adv:"GF38 (Grenoble)",    cat:"ARGENT"},
+  {j:"J7", d:"2026-09-18", jour:"Vendredi", adv:"NANCY",              cat:"ARGENT"},
+  {j:"J9", d:"2026-10-19", jour:"Lundi",    adv:"MHSC (Montpellier)", cat:"OR"},
+  {j:"J11",d:"2026-10-30", jour:"Vendredi", adv:"USLD (Dunkerque)",   cat:"BRONZE"},
+  {j:"J14",d:"2026-12-04", jour:"Vendredi", adv:"REIMS",              cat:"OR"},
+  {j:"J16",d:"2027-01-02", jour:"Samedi",   adv:"RED STAR",           cat:"ARGENT"},
+  {j:"J18",d:"2027-01-22", jour:"Vendredi", adv:"ANNECY",             cat:"BRONZE"},
+  {j:"J20",d:"2027-02-05", jour:"Vendredi", adv:"NANTES",             cat:"OR"},
+  {j:"J21",d:"2027-02-12", jour:"Vendredi", adv:"EAG (Guingamp)",     cat:"BRONZE"},
+  {j:"J23",d:"2027-02-26", jour:"Vendredi", adv:"BOULOGNE",           cat:"BRONZE"},
+  {j:"J25",d:"2027-03-12", jour:"Vendredi", adv:"SOCHAUX",            cat:"ARGENT"},
+  {j:"J27",d:"2027-04-02", jour:"Vendredi", adv:"DIJON",              cat:"ARGENT"},
+  {j:"J29",d:"2027-04-16", jour:"Vendredi", adv:"CLERMONT",           cat:"ARGENT"},
+  {j:"J31",d:"2027-04-30", jour:"Vendredi", adv:"METZ",               cat:"OR"},
+  {j:"J33",d:"2027-05-14", jour:"Vendredi", adv:"ASSE",               cat:"OR"}
+];
+
+var LIEUX = [
+  {id:"parvis",   nom:"Parvis"},
+  {id:"instadia", nom:"inStadia"}
+];
+
+/* Les deux exploitants inStadia sont les mêmes toute la saison, ils ne
+   suivent pas la rotation du parvis. */
+var STANDS = [
+  {id:"burger",    nom:"Burger / Street food",        lieu:"parvis"},
+  {id:"grillades", nom:"Grillades + accompagnements", lieu:"parvis"},
+  {id:"aligot",    nom:"Aligot",                      lieu:"parvis"},
+  {id:"sucre",     nom:"Sucré",                       lieu:"parvis"},
+  {id:"buron",     nom:"Le Buron",                    lieu:"instadia", fixe:"Un Goût d'Aubrac"},
+  {id:"fabrique",  nom:"La Fabrique à Burger",        lieu:"instadia", fixe:"Burgé d'Aqui"}
+];
+
+var PLANNING = {
+  J1: {burger:"Big Gachou",            grillades:"12 Broches",        aligot:"",                        sucre:"Chocolaterie Pépites"},
+  J4: {burger:"Lou Carretou",          grillades:"Vincent Marcillac", aligot:"L'Amistat",               sucre:"Chocolaterie Pépites"},
+  J6: {burger:"Vincent Marcillac",     grillades:"12 Broches",        aligot:"Aux Saveurs de l'Aubrac", sucre:""},
+  J7: {burger:"Big Gachou",            grillades:"12 Broches",        aligot:"Aux Saveurs de l'Aubrac", sucre:"Douceurs de Lunel"},
+  J9: {burger:"Le Cèdre",              grillades:"Ferme Cabrol",      aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J11:{burger:"Lou Carretou",          grillades:"Ferme Cabrol",      aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J14:{burger:"Big Gachou",            grillades:"12 Broches",        aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J16:{burger:"Big Gachou",            grillades:"12 Broches",        aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J18:{burger:"Lou Carretou",          grillades:"12 Broches",        aligot:"Lycée Laroque",           sucre:"Douceurs de Lunel"},
+  J20:{burger:"Big Gachou",            grillades:"12 Broches",        aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J21:{burger:"Big Gachou",            grillades:"Ferme Cabrol",      aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J23:{burger:"Lou Carretou",          grillades:"Ferme Cabrol",      aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J25:{burger:"Lou Carretou",          grillades:"12 Broches",        aligot:"Lycée Laroque",           sucre:"Douceurs de Lunel"},
+  J27:{burger:"Le Cèdre",              grillades:"Ferme Cabrol",      aligot:"L'Amistat",               sucre:"Douceurs de Lunel"},
+  J29:{burger:"Le Cèdre",              grillades:"Ferme Cabrol",      aligot:"Big Gachou",              sucre:"Douceurs de Lunel"},
+  J31:{burger:"Le Cèdre",              grillades:"12 Broches",        aligot:"Big Gachou",              sucre:"Noé Ferrand (Glace)"},
+  J33:{burger:"Big Gachou",            grillades:"12 Broches",        aligot:"L'Amistat",               sucre:"Noé Ferrand (Glace)"}
+};
+
+var SECTIONS = [
+  {id:"gen", tag:"H&E", titre:"Horaires & « zéro espèces »"},
+  {id:"s7",  tag:"§7",  titre:"Qualité de l'offre — Label LFP"},
+  {id:"s8",  tag:"§8",  titre:"Règles d'installation"},
+  {id:"s9",  tag:"§9",  titre:"Propreté & déchets"}
+];
+
+/* lieux : où le critère s'applique, les deux par défaut.
+   bonus : valorisé mais n'entraîne jamais la non-conformité d'une section. */
+var CRITERES = [
+  {id:"c03", sec:"gen", t:"Installation prête à l'heure"},
+  {id:"c04", sec:"gen", t:"Affichage paiement uniquement en CB"},
+  {id:"c05", sec:"gen", t:"Politique zéro espèces respectée"},
+  {id:"c20", sec:"gen", t:"Personnel déclaré 48 h avant le match", lieux:["instadia"]},
+  {id:"c21", sec:"gen", t:"Aucune vente de boissons sur l'emplacement", lieux:["instadia"]},
+
+  {id:"c06", sec:"s7",  t:"Affichage de l'origine des viandes"},
+  {id:"c07", sec:"s7",  t:"Viandes d'origine française"},
+  {id:"c08", sec:"s7",  t:"Affichage des allergènes"},
+  {id:"c09", sec:"s7",  t:"Les produits sont faits maison"},
+  {id:"c10", sec:"s7",  t:"Affichage sur les produits faits maison"},
+  {id:"c11", sec:"s7",  t:"Affichage des produits locaux et artisanaux (AOP, IGP, STG)"},
+  {id:"c12", sec:"s7",  t:"Affichage des produits labellisés et/ou bio (AB, Label Rouge, MSC)"},
+
+  {id:"c13", sec:"s8",  t:"Structures lestées", lieux:["parvis"]},
+  {id:"c14", sec:"s8",  t:"Manges-debout présents", lieux:["parvis"]},
+  {id:"c15", sec:"s8",  t:"Câbles gaffés ou passe-câbles"},
+  {id:"c16", sec:"s8",  t:"Mobilier et stand propres"},
+  {id:"c17", sec:"s8",  t:"Respect de la thématisation du match", bonus:true},
+
+  {id:"c18", sec:"s9",  t:"Tri et évacuation des déchets assurés"},
+  {id:"c19", sec:"s9",  t:"Emplacement rendu propre"}
+];
+
+var ETAT_LBL = {ok:"Conforme", ko:"Non conforme", na:"N/A"};
+
+function critereIci(c, lieu){
+  return !c.lieux || c.lieux.indexOf(lieu) > -1;
+}
+function criteresDe(lieu){
+  return CRITERES.filter(function(c){ return critereIci(c, lieu); });
+}
+function lieuDuStand(s){ return standDe(s).lieu; }
+var CDN_EXCEL = [
+  "exceljs.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js",
+  "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+];
+
+/* ================= État ================= */
+var DB = null, DL = null, IDB = null;
+var curJ = null, curStand = "burger", curLieu = "parvis", lieuRendu = null;
+var fiche = null;
+var saveTimer = null;
+var chargeSeq = 0;   /* identifie le chargement en cours */
+var editSeq = 0;     /* incrémenté à chaque modification de l'utilisateur */
+
+function $(id){ return document.getElementById(id); }
+function cle(j, s){ return j + "__" + s; }
+function pcle(j, s, c){ return j + "__" + s + "__" + c; }
+function lsCle(j, s){ return "ctrlp3_" + cle(j, s); }
+function matchDe(j){ for(var i=0;i<MATCHS.length;i++){ if(MATCHS[i].j === j) return MATCHS[i]; } return MATCHS[0]; }
+function standDe(id){ for(var i=0;i<STANDS.length;i++){ if(STANDS[i].id === id) return STANDS[i]; } return STANDS[0]; }
+function secDe(id){ for(var i=0;i<SECTIONS.length;i++){ if(SECTIONS[i].id === id) return SECTIONS[i]; } return SECTIONS[0]; }
+function nomPlanifie(j, s){
+  var st = standDe(s);
+  if(st.fixe) return st.fixe;
+  return (PLANNING[j] && PLANNING[j][s]) ? PLANNING[j][s] : "";
+}
+function indexMatch(j){ for(var i=0;i<MATCHS.length;i++){ if(MATCHS[i].j === j) return i; } return 0; }
+function dateFR(d){ var p = d.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
+function ordreStand(id){ for(var i=0;i<STANDS.length;i++){ if(STANDS[i].id === id) return i; } return 99; }
+
+function esc(s){
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* Les documents renvoyés par la base sont gelés : on en prend toujours une copie
+   modifiable avant de s'en servir comme fiche de travail. */
+function copiePlate(o){
+  var out = {};
+  if(o && typeof o === "object"){
+    for(var k in o){ if(Object.prototype.hasOwnProperty.call(o, k)) out[k] = o[k]; }
+  }
+  return out;
+}
+
+function estStandAjoute(s){ return String(s).indexOf("sup") === 0; }
+
+function vide(j, s){
+  var m = matchDe(j), ajoute = estStandAjoute(s);
+  return {
+    journee:j, date:m.d, adversaire:m.adv, categorie:m.cat,
+    stand:s,
+    standNom: ajoute ? "" : standDe(s).nom,
+    lieu:     ajoute ? curLieu : lieuDuStand(s),
+    exposant: ajoute ? "" : nomPlanifie(j, s),
+    superficie:"", etats:{}, commentaires:{}, photos:{}, updatedAt:"",
+    valideeA:"", envoiId:"", recueId:"", recueA:"", photosRecues:{}
+  };
+}
+
+/* Le nom du stand affiché et exporté : celui saisi sur le terrain d'abord. */
+function nomStand(f){
+  if(f && f.standNom) return f.standNom;
+  if(f && estStandAjoute(f.stand)) return "Stand ajouté";
+  return standDe(f ? f.stand : "").nom;
+}
+
+/* Verdict d'une section : un seul critère non conforme suffit à la faire basculer.
+   Les critères bonus sont exclus du calcul. */
+function verdictSection(f, secId){
+  var lieu = f.lieu || lieuDuStand(f.stand);
+  var liste = CRITERES.filter(function(c){
+    return c.sec === secId && !c.bonus && critereIci(c, lieu);
+  });
+  if(!liste.length) return "";
+  var etats = f.etats || {}, manque = 0;
+  for(var i=0;i<liste.length;i++){
+    var v = etats[liste[i].id];
+    if(v === "ko") return "Non conforme";
+    if(!v) manque++;
+  }
+  return manque ? "Incomplet" : "Conforme";
+}
+
+function prochainMatch(){
+  var auj = new Date().toISOString().slice(0, 10);
+  for(var i=0;i<MATCHS.length;i++){ if(MATCHS[i].d >= auj) return MATCHS[i].j; }
+  return MATCHS[MATCHS.length-1].j;
+}
+
+function stats(f){
+  var e = (f && f.etats) || {};
+  var liste = criteresDe((f && f.lieu) || lieuDuStand(f && f.stand));
+  var remplis = 0, ko = 0;
+  for(var i=0;i<liste.length;i++){
+    var v = e[liste[i].id];
+    if(v) remplis++;
+    if(v === "ko" && !liste[i].bonus) ko++;
+  }
+  return {remplis:remplis, ko:ko, total:liste.length, reste:liste.length - remplis};
+}
+
+/* ================= Photos : tampon local IndexedDB ================= */
+function idbOpen(cb){
+  try{
+    var rq = indexedDB.open("ctrl_parvis_photos", 1);
+    rq.onupgradeneeded = function(){ rq.result.createObjectStore("photos"); };
+    rq.onsuccess = function(){ IDB = rq.result; cb(); };
+    rq.onerror = function(){ cb(); };
+    rq.onblocked = function(){ cb(); };
+  }catch(e){ cb(); }
+}
+function idbPut(k, val){
+  if(!IDB) return;
+  try{ IDB.transaction("photos","readwrite").objectStore("photos").put(val, k); }catch(e){}
+}
+function idbDel(k){
+  if(!IDB) return;
+  try{ IDB.transaction("photos","readwrite").objectStore("photos").delete(k); }catch(e){}
+}
+function idbGet(k){
+  return new Promise(function(res){
+    if(!IDB){ res(null); return; }
+    try{
+      var rq = IDB.transaction("photos","readonly").objectStore("photos").get(k);
+      rq.onsuccess = function(){ res(rq.result || null); };
+      rq.onerror = function(){ res(null); };
+    }catch(e){ res(null); }
+  });
+}
+function idbTout(){
+  return new Promise(function(res){
+    if(!IDB){ res({}); return; }
+    var out = {};
+    try{
+      var rq = IDB.transaction("photos","readonly").objectStore("photos").openCursor();
+      rq.onsuccess = function(){
+        var c = rq.result;
+        if(!c){ res(out); return; }
+        out[c.key] = c.value;
+        c["continue"]();
+      };
+      rq.onerror = function(){ res(out); };
+    }catch(e){ res(out); }
+  });
+}
+
+/* Réduit une image ou une image vidéo à 1000 px puis descend la qualité
+   jusqu'à tenir sous la limite d'un document de la base. */
+function reduireDe(el, sw, sh){
+  var max = 1000, w = sw, h = sh;
+  if(!w || !h) return null;
+  if(w >= h && w > max){ h = Math.round(h * max / w); w = max; }
+  else if(h > w && h > max){ w = Math.round(w * max / h); h = max; }
+  var cv = document.createElement("canvas");
+  cv.width = w; cv.height = h;
+  cv.getContext("2d").drawImage(el, 0, 0, w, h);
+  var q = [0.62, 0.5, 0.4, 0.3, 0.22], d = null;
+  for(var i=0;i<q.length;i++){
+    d = cv.toDataURL("image/jpeg", q[i]);
+    if(d.length <= 175000) break;
+  }
+  return d ? {data:d, w:w, h:h} : null;
+}
+
+function compresser(file){
+  return new Promise(function(res){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      var out = reduireDe(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+      URL.revokeObjectURL(url);
+      res(out);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+
+function getPhoto(k){
+  return idbGet(k).then(function(local){
+    if(local && local.data) return local;
+    if(!DB) return null;
+    return DB.doc("photos/" + k).get()
+      .then(function(sn){ return sn.exists ? sn.data() : null; })
+      .catch(function(){ return null; });
+  });
+}
+
+function enregistrerPhoto(k, ph){
+  var val = {data:ph.data, w:ph.w, h:ph.h, ts:new Date().toISOString()};
+  idbPut(k, val);
+  if(!DB) return Promise.resolve(false);
+  return DB.doc("photos/" + k).set(val).then(function(){ return true; }).catch(function(){ return false; });
+}
+
+function supprimerPhoto(k){
+  idbDel(k);
+  if(DB) DB.doc("photos/" + k).delete().catch(function(){});
+}
+
+function traiterPhoto(cid, ph){
+  if(!cid || !ph || !ph.data){ signaler("Photo illisible, réessaie.", true); return; }
+  var jj = fiche.journee, ss = fiche.stand;
+  fiche.photos[cid] = true;
+  var forcer = function(){
+    var bx = document.querySelector('[data-th="' + cid + '"]');
+    if(bx) bx.removeAttribute("data-k");      /* nouvelle photo : la vignette doit changer */
+    renderVignette(cid);
+  };
+  forcer(); majOutils(cid); sauver();
+  enregistrerPhoto(pcle(jj, ss, cid), ph).then(function(){
+    if(fiche.journee === jj && fiche.stand === ss) forcer();
+  }).catch(function(e){
+    signaler("Photo : " + ((e && e.message) || "échec d'enregistrement"), true);
+  });
+}
+
+/* ================= Sélecteur de match ================= */
+function renderSheet(){
+  var h = '<div class="panel"><h3>Choisir le match<button id="closesheet" aria-label="Fermer">×</button></h3>';
+  for(var i=0;i<MATCHS.length;i++){
+    var m = MATCHS[i];
+    h += '<button class="mrow" data-j="' + m.j + '" aria-current="false">'
+       + '<span class="j">' + m.j + '</span>'
+       + '<span class="lbl">RAF x ' + esc(m.adv)
+       + '<small>' + m.jour + ' ' + dateFR(m.d) + '</small></span>'
+       + '<span class="catbadge cat-' + m.cat + '">' + m.cat + '</span></button>';
+  }
+  $("sheet").innerHTML = h + '</div>';
+  $("closesheet").addEventListener("click", fermerSheet);
+  $("sheet").addEventListener("click", function(e){ if(e.target === this) fermerSheet(); });
+  var rows = $("sheet").querySelectorAll(".mrow");
+  for(var k=0;k<rows.length;k++){
+    rows[k].addEventListener("click", function(){ fermerSheet(); choisirMatch(this.getAttribute("data-j")); });
+  }
+}
+function ouvrirSheet(){
+  $("sheet").hidden = false;
+  $("mpick").setAttribute("aria-expanded", "true");
+  var a = $("sheet").querySelector('.mrow[aria-current="true"]');
+  if(a && a.scrollIntoView) a.scrollIntoView({block:"center"});
+}
+function fermerSheet(){
+  $("sheet").hidden = true;
+  $("mpick").setAttribute("aria-expanded", "false");
+}
+function majBandeauMatch(){
+  var m = matchDe(curJ), idx = indexMatch(curJ);
+  $("mj").textContent = m.j;
+  $("mtxt").textContent = m.jour.slice(0,3) + " " + dateFR(m.d).slice(0,5) + " · RAF x " + m.adv;
+  $("catbadge").textContent = m.cat;
+  $("catbadge").className = "catbadge cat-" + m.cat;
+  $("prevm").disabled = (idx === 0);
+  $("nextm").disabled = (idx === MATCHS.length - 1);
+  var rows = $("sheet").querySelectorAll(".mrow");
+  for(var k=0;k<rows.length;k++){
+    rows[k].setAttribute("aria-current", String(rows[k].getAttribute("data-j") === curJ));
+  }
+}
+function premierStandDispo(){
+  var liste = standsDuLieu();
+  for(var i=0;i<liste.length;i++){ if(nomPlanifie(curJ, liste[i].id)) return liste[i].id; }
+  return liste.length ? liste[0].id : "burger";
+}
+function choisirMatch(j){
+  if(j === curJ) return;
+  curJ = j;
+  if(!nomPlanifie(curJ, curStand)) curStand = premierStandDispo();
+  majBandeauMatch();
+  renderStands();
+  charger();
+}
+function decaleMatch(pas){
+  var idx = indexMatch(curJ) + pas;
+  if(idx < 0 || idx >= MATCHS.length) return;
+  choisirMatch(MATCHS[idx].j);
+}
+
+/* ================= Lieu et onglets stands ================= */
+function renderLieux(){
+  var h = "";
+  for(var i=0;i<LIEUX.length;i++){
+    h += '<button role="tab" data-l="' + LIEUX[i].id + '"'
+       + ' aria-selected="' + (LIEUX[i].id === curLieu) + '">' + LIEUX[i].nom + '</button>';
+  }
+  $("lieux").innerHTML = h;
+  var bs = $("lieux").querySelectorAll("button");
+  for(var k=0;k<bs.length;k++){
+    bs[k].addEventListener("click", function(){
+      var l = this.getAttribute("data-l");
+      if(l === curLieu) return;
+      curLieu = l;
+      curStand = premierStandDispo();
+      renderLieux();
+      renderStands();
+      charger();
+    });
+  }
+}
+
+/* Les emplacements de la rotation servent de base, mais le parvis a le dernier mot :
+   tout stand supplémentaire créé sur le terrain est retrouvé à partir de sa fiche. */
+function standsSupplementaires(j, lieu){
+  var out = [];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(!k || k.indexOf("ctrlp3_" + j + "__sup") !== 0) continue;
+      var d = JSON.parse(localStorage.getItem(k));
+      if(!d || d.lieu !== lieu) continue;
+      out.push({id:d.stand, nom:d.standNom || "Stand ajouté", lieu:lieu, sup:true,
+                exposant:d.exposant || ""});
+    }
+  }catch(e){}
+  out.sort(function(a, b){ return a.id < b.id ? -1 : 1; });
+  return out;
+}
+
+function standsDuLieu(){
+  var base = STANDS.filter(function(s){ return s.lieu === curLieu; });
+  return base.concat(standsSupplementaires(curJ, curLieu));
+}
+
+function nouvelIdStand(){
+  var n = 1, pris = {};
+  standsSupplementaires(curJ, curLieu).forEach(function(s){ pris[s.id] = true; });
+  while(pris["sup" + n]) n++;
+  return "sup" + n;
+}
+
+function renderStands(){
+  var liste = standsDuLieu(), h = "";
+  /* Un même exposant peut tenir deux stands : on précise alors lequel. */
+  var vus = {};
+  liste.forEach(function(s){
+    var n = s.exposant || nomPlanifie(curJ, s.id);
+    if(n) vus[n] = (vus[n] || 0) + 1;
+  });
+  for(var i=0;i<liste.length;i++){
+    var s = liste[i], nom = s.exposant || nomPlanifie(curJ, s.id), vacant = !nom;
+    var etiquette = vacant ? (s.nom + " · libre")
+                  : (vus[nom] > 1 ? (nom + " · " + s.nom) : nom);
+    h += '<button class="chip" role="tab" data-s="' + s.id + '"'
+       + ' aria-selected="' + (s.id === curStand) + '">'
+       + '<span class="dot" data-dot="' + s.id + '"></span>'
+       + esc(etiquette) + '</button>';
+  }
+  h += '<button class="chip plus" id="addstand" title="Ajouter un stand à ce match">+ Stand</button>';
+  $("stands").innerHTML = h;
+
+  var chips = $("stands").querySelectorAll(".chip[data-s]");
+  for(var k=0;k<chips.length;k++){
+    chips[k].addEventListener("click", function(){
+      var s = this.getAttribute("data-s");
+      if(s === curStand) return;
+      curStand = s;
+      charger();
+    });
+  }
+  $("addstand").addEventListener("click", ajouterStand);
+  majPastilles();
+  majMarquesEnvoi();
+}
+
+function ajouterStand(){
+  var id = nouvelIdStand();
+  curStand = id;
+  fiche = vide(curJ, id);
+  fiche.standNom = "";
+  fiche.exposant = "";
+  sauver();                 /* la fiche existe : le stand apparaîtra dans la liste */
+  renderStands();
+  $("expname").value = "";
+  $("standnom").value = "";
+  peindre();
+  $("standnom").focus();
+}
+
+function majPastilles(){
+  standsDuLieu().forEach(function(s){
+    var dot = document.querySelector('[data-dot="' + s.id + '"]');
+    if(!dot) return;
+    lireFiche(curJ, s.id, true).then(function(f){
+      if(!dot.parentNode) return;
+      dot.className = "dot";
+      if(!f) return;
+      var st = stats(f);
+      if(st.ko > 0) dot.classList.add("warn");
+      else if(st.reste === 0) dot.classList.add("done");
+      else if(st.remplis > 0) dot.classList.add("part");
+    });
+  });
+}
+
+/* ================= Grille de critères ================= */
+function rowHTML(c){
+  return '<div class="row" data-row="' + c.id + '">'
+    + '<div class="rowtxt">' + esc(c.t)
+    + (c.bonus ? '<span class="bonusmark">bonus</span>' : '') + '</div>'
+    + '<div class="seg">'
+    + '<button data-c="' + c.id + '" data-v="ok" aria-pressed="false">Conforme</button>'
+    + '<button data-c="' + c.id + '" data-v="ko" aria-pressed="false">Non conforme</button>'
+    + '<button data-c="' + c.id + '" data-v="na" aria-pressed="false">N/A</button>'
+    + '<span class="ico icophoto" data-pl="' + c.id + '" title="Prendre une photo">'
+    + '<span data-em="' + c.id + '">📷</span>'
+    + '<input type="file" accept="image/*" capture="environment"'
+    + ' data-cam="' + c.id + '" aria-label="Prendre une photo">'
+    + '</span>'
+    + '<button class="ico" data-m="' + c.id + '" title="Ajouter un commentaire"'
+    + ' aria-label="Ajouter un commentaire">💬</button>'
+    + '</div>'
+    + '<div data-th="' + c.id + '"></div>'
+    + '<textarea class="note" data-n="' + c.id + '" hidden'
+    + ' placeholder="Ce qui a été constaté, à reprendre avec l\'exposant"></textarea>'
+    + '</div>';
+}
+
+function renderBlocs(lieu){
+  lieuRendu = lieu;
+  var liste = criteresDe(lieu), h = "";
+  for(var s=0;s<SECTIONS.length;s++){
+    var sec = SECTIONS[s], rows = "";
+    if(sec.id === "gen" && lieu === "parvis"){
+      rows += '<div class="row"><div class="rowtxt">Superficie du stand</div>'
+            + '<div class="supin"><input type="number" inputmode="decimal" min="0" step="0.5"'
+            + ' id="superficie" placeholder="—" aria-label="Superficie du stand en m²">'
+            + '<span>m²</span></div></div>';
+    }
+    for(var i=0;i<liste.length;i++){ if(liste[i].sec === sec.id) rows += rowHTML(liste[i]); }
+    if(!rows) continue;
+    h += '<section class="bloc">'
+       + '<div class="blochead"><span class="n">' + sec.tag + '</span><h2>' + sec.titre + '</h2></div>'
+       + '<button class="allok" data-sec="' + sec.id + '">Tout conforme'
+       + '<span class="sub">n\'écrase pas ce qui est déjà noté</span></button>'
+       + rows + '</section>';
+  }
+  $("blocs").innerHTML = h;
+
+  var sup = $("superficie");
+  if(sup){
+    sup.addEventListener("input", function(){
+      fiche.superficie = this.value;
+      sauver();
+    });
+  }
+
+  brancher(".allok", "click", function(){
+    var sid = this.getAttribute("data-sec");
+    criteresDe(lieuRendu).forEach(function(c){
+      if(c.sec === sid && !fiche.etats[c.id]) fiche.etats[c.id] = "ok";
+    });
+    peindre(); sauver();
+  });
+
+  brancher(".seg button[data-c]", "click", function(){
+    var id = this.getAttribute("data-c"), v = this.getAttribute("data-v");
+    if(fiche.etats[id] === v) delete fiche.etats[id];
+    else fiche.etats[id] = v;
+    peindre(); sauver();
+  });
+
+  brancher("[data-m]", "click", function(){
+    var id = this.getAttribute("data-m");
+    var ta = document.querySelector('[data-n="' + id + '"]');
+    if(ta.hidden){ ta.hidden = false; ta.focus(); } else { ta.hidden = true; }
+    majOutils(id);
+  });
+
+  brancher(".note", "input", function(){
+    var id = this.getAttribute("data-n");
+    if(this.value.trim()) fiche.commentaires[id] = this.value;
+    else delete fiche.commentaires[id];
+    majOutils(id); sauver();
+  });
+
+  /* Diagnostic : dit si le doigt atteint bien le champ, même si le
+     sélecteur du système refuse ensuite de s'ouvrir. */
+  brancher("[data-cam]", "click", function(){
+    signaler("Sélecteur photo demandé…", false);
+  });
+
+  brancher("[data-cam]", "change", function(){
+    var cid = this.getAttribute("data-cam");
+    var f = this.files && this.files[0];
+    this.value = "";
+    if(!f){ signaler("Aucune image choisie.", false); return; }
+    var em = document.querySelector('[data-em="' + cid + '"]');
+    if(em) em.textContent = "…";
+    signaler("Traitement de l'image…", false);
+    compresser(f).then(function(ph){
+      if(em) em.textContent = "📷";
+      traiterPhoto(cid, ph);
+    }).catch(function(e){
+      if(em) em.textContent = "📷";
+      signaler("Photo : " + ((e && e.message) || "image illisible"), true);
+    });
+  });
+}
+
+function brancher(sel, evt, fn){
+  var els = $("blocs").querySelectorAll(sel);
+  for(var i=0;i<els.length;i++){
+    els[i].addEventListener(evt, function(e){
+      try{ fn.call(this, e); }
+      catch(err){ signaler("Erreur : " + (err && err.message ? err.message : err), true); }
+    });
+  }
+}
+
+function majOutils(id){
+  var row = document.querySelector('[data-row="' + id + '"]');
+  if(!row) return;
+  var lab = row.querySelector("[data-pl]"), bm = row.querySelector("[data-m]");
+  var photos = (fiche && fiche.photos) || {}, coms = (fiche && fiche.commentaires) || {};
+  if(lab) lab.classList.toggle("on", !!photos[id]);
+  if(bm) bm.classList.toggle("on", !!coms[id]);
+}
+
+function renderVignette(id){
+  var box = document.querySelector('[data-th="' + id + '"]');
+  if(!box) return;
+  var photos = (fiche && fiche.photos) || {};
+  if(!photos[id]){ box.innerHTML = ""; box.removeAttribute("data-k"); return; }
+  var k = pcle(fiche.journee, fiche.stand, id);
+  /* Vignette déjà affichée pour cette photo : on n'y touche pas, sinon l'image
+     clignote à chaque case cochée. */
+  var dejaLa = box.querySelector("img[src]");
+  if(box.getAttribute("data-k") === k && dejaLa) return;
+  box.setAttribute("data-k", k);
+  box.innerHTML = '<div class="thumb"><img alt="Photo du contrôle" data-img="' + id + '">'
+    + '<div class="meta"><b>Photo enregistrée</b><span data-sz="' + id + '">…</span></div>'
+    + '<button class="del" data-del="' + id + '">Supprimer</button></div>';
+  box.querySelector("[data-del]").addEventListener("click", function(){
+    var cid = this.getAttribute("data-del");
+    supprimerPhoto(pcle(fiche.journee, fiche.stand, cid));
+    delete fiche.photos[cid];
+    renderVignette(cid); majOutils(cid); sauver();
+  });
+  getPhoto(k).then(function(ph){
+    var im = box.querySelector('[data-img="' + id + '"]');
+    var sz = box.querySelector('[data-sz="' + id + '"]');
+    if(!im) return;
+    if(ph && ph.data){
+      im.src = ph.data;
+      if(sz) sz.textContent = ph.w + "×" + ph.h + " · " + Math.round(ph.data.length / 1400) + " Ko";
+    } else if(sz){
+      sz.textContent = "image absente de cet appareil";
+    }
+  });
+}
+
+function peindre(){
+  var etats = (fiche && fiche.etats) || {}, coms = (fiche && fiche.commentaires) || {};
+  var liste = criteresDe(lieuRendu);
+  var sup = $("superficie");
+  if(sup && document.activeElement !== sup) sup.value = (fiche && fiche.superficie) || "";
+  for(var i=0;i<liste.length;i++){
+    var c = liste[i], v = etats[c.id];
+    var row = document.querySelector('[data-row="' + c.id + '"]');
+    if(!row) continue;
+    row.classList.toggle("is-ko", v === "ko");
+    var bs = row.querySelectorAll(".seg button[data-c]");
+    for(var k=0;k<bs.length;k++){
+      bs[k].setAttribute("aria-pressed", String(bs[k].getAttribute("data-v") === v));
+    }
+    var ta = row.querySelector(".note");
+    if(document.activeElement !== ta){
+      ta.value = coms[c.id] || "";
+      ta.hidden = !coms[c.id];
+    }
+    majOutils(c.id);
+    renderVignette(c.id);
+  }
+  var st = stats(fiche);
+  $("counter").textContent = st.remplis + "/" + st.total;
+  var v2 = $("vstatus");
+  if(st.ko > 0){
+    v2.className = "vstatus v-ko";
+    v2.textContent = st.ko + (st.ko > 1 ? " non-conformités" : " non-conformité");
+  } else if(st.reste > 0){
+    v2.className = "vstatus v-wait";
+    v2.textContent = st.remplis === 0 ? "Contrôle à démarrer" : ("En cours · " + st.reste + " à contrôler");
+  } else {
+    v2.className = "vstatus v-ok";
+    v2.textContent = "Tout conforme";
+  }
+  majResumeExport();
+  majEnvoi();
+}
+
+/* ================= Persistance ================= */
+function ecrireLocal(f){
+  try{ localStorage.setItem(lsCle(f.journee, f.stand), JSON.stringify(f)); }catch(e){}
+}
+
+function lireFiche(j, s, silencieux){
+  var local = null;
+  try{
+    var raw = localStorage.getItem(lsCle(j, s));
+    if(raw) local = JSON.parse(raw);
+  }catch(e){}
+  var fusion = function(distant){
+    var d = local;
+    if(distant && (!local || (distant.updatedAt || "") > (local.updatedAt || ""))) d = distant;
+    if(!d) return silencieux ? null : vide(j, s);
+    var base = vide(j, s);
+    base.exposant = d.exposant || base.exposant;
+    if(d.standNom) base.standNom = d.standNom;
+    if(d.lieu) base.lieu = d.lieu;
+    base.superficie = (d.superficie === 0 || d.superficie) ? String(d.superficie) : "";
+    base.etats = copiePlate(d.etats);
+    base.commentaires = copiePlate(d.commentaires);
+    base.photos = copiePlate(d.photos);
+    base.updatedAt = d.updatedAt || "";
+    base.valideeA = d.valideeA || "";
+    base.envoiId = d.envoiId || "";
+    base.recueId = d.recueId || "";
+    base.recueA = d.recueA || "";
+    base.photosRecues = copiePlate(d.photosRecues);
+    return base;
+  };
+  if(!DB) return Promise.resolve(fusion(null));
+  return DB.doc("controles/" + cle(j, s)).get()
+    .then(function(sn){ return fusion(sn.exists ? sn.data() : null); })
+    .catch(function(){ return fusion(null); });
+}
+
+function sauver(){
+  editSeq++;
+  fiche.updatedAt = new Date().toISOString();
+  ecrireLocal(fiche);
+  etatSauvegarde("local");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    if(!DB){ majPastilles(); return; }
+    DB.doc("controles/" + cle(fiche.journee, fiche.stand)).set(JSON.parse(JSON.stringify(fiche)))
+      .then(function(){ etatSauvegarde("ok"); })
+      .catch(function(){ etatSauvegarde("hors"); })
+      .then(function(){ majPastilles(); });
+  }, 700);
+  majEnvoi();
+}
+
+function etatSauvegarde(mode){
+  var led = $("led"), txt = $("savetxt");
+  led.className = "led";
+  if(mode === "ok"){ led.classList.add("on"); txt.innerHTML = "Enregistré · <b>synchronisé</b>"; }
+  else if(mode === "local"){ led.classList.add("on"); txt.textContent = "Enregistré sur le téléphone"; }
+  else if(mode === "hors"){ led.classList.add("off"); txt.innerHTML = "Hors ligne · <b>gardé sur l'appareil</b>"; }
+  else { txt.textContent = "Prêt"; }
+}
+
+function signaler(msg, grave){
+  var led = $("led"), txt = $("savetxt");
+  led.className = "led" + (grave ? " bad" : " on");
+  txt.textContent = msg;
+}
+
+/* Chargement d'une fiche, protégé contre les courses :
+   un chargement plus ancien, ou arrivé après une saisie, n'écrase rien. */
+function charger(){
+  var seq = ++chargeSeq;
+  var editDepart = editSeq;
+  var j = curJ, s = curStand;
+
+  fiche = vide(j, s);
+  if(lieuRendu !== fiche.lieu) renderBlocs(fiche.lieu);
+  $("expname").value = fiche.exposant || "";
+  $("standnom").value = fiche.standNom || "";
+  majSelectionStand();
+  peindre();
+
+  return lireFiche(j, s, false).then(function(f){
+    if(seq !== chargeSeq) return;                 /* une autre fiche a été demandée depuis */
+    if(editSeq !== editDepart) return;            /* saisie en cours, on ne recharge pas */
+    fiche = f;
+    if(lieuRendu !== fiche.lieu) renderBlocs(fiche.lieu);
+    if(!fiche.exposant) fiche.exposant = nomPlanifie(j, s);
+    if(document.activeElement !== $("expname")) $("expname").value = fiche.exposant || "";
+    if(document.activeElement !== $("standnom")) $("standnom").value = fiche.standNom || "";
+    majSelectionStand();
+    peindre();
+  });
+}
+
+function majSelectionStand(){
+  var chips = $("stands").querySelectorAll(".chip");
+  for(var i=0;i<chips.length;i++){
+    chips[i].setAttribute("aria-selected", String(chips[i].getAttribute("data-s") === curStand));
+  }
+}
+
+/* ================= Collecte pour l'export ================= */
+function toutesLesFiches(){
+  var parCle = {};
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(!k || k.indexOf("ctrlp3_") !== 0) continue;
+      var d = JSON.parse(localStorage.getItem(k));
+      if(d && d.journee && d.stand) parCle[cle(d.journee, d.stand)] = d;
+    }
+  }catch(e){}
+  if(!DB) return Promise.resolve(parCle);
+  return DB.collection("controles").get().then(function(sn){
+    sn.docs.forEach(function(ds){
+      var d = ds.data();
+      if(!d || !d.journee || !d.stand) return;
+      var k = cle(d.journee, d.stand), ex = parCle[k];
+      if(!ex || (d.updatedAt || "") > (ex.updatedAt || "")) parCle[k] = d;
+    });
+    return parCle;
+  }).catch(function(){ return parCle; });
+}
+
+function estRempli(f){
+  if(!f) return false;
+  if(f.etats && Object.keys(f.etats).length) return true;
+  if(f.commentaires && Object.keys(f.commentaires).length) return true;
+  if(f.photos && Object.keys(f.photos).length) return true;
+  return false;
+}
+
+function majResumeExport(){
+  toutesLesFiches().then(function(parCle){
+    var matchs = {}, fiches = 0, photos = 0;
+    for(var k in parCle){
+      var f = parCle[k];
+      if(!estRempli(f)) continue;
+      matchs[f.journee] = true; fiches++;
+      if(f.photos) photos += Object.keys(f.photos).length;
+    }
+    var nbm = Object.keys(matchs).length;
+    $("exline").innerHTML =
+        '<span class="tag">Onglets <b>' + nbm + '</b></span>'
+      + '<span class="tag">Fiches <b>' + fiches + '</b></span>'
+      + '<span class="tag">Photos <b>' + photos + '</b></span>';
+    $("exbtn").disabled = (nbm === 0);
+  });
+}
+
+/* ================= Chargement de la bibliothèque Excel ================= */
+var journalCDN = [];
+
+function injecter(url){
+  return new Promise(function(res, rej){
+    var sc = document.createElement("script");
+    sc.src = url;
+    sc.async = true;
+    sc.onload = function(){ res(true); };
+    sc.onerror = function(){ rej(new Error("téléchargement bloqué")); };
+    document.head.appendChild(sc);
+    setTimeout(function(){ rej(new Error("délai dépassé")); }, 20000);
+  });
+}
+
+function chargerExcelJS(){
+  if(window.ExcelJS) return Promise.resolve(true);
+  journalCDN = [];
+  var p = Promise.resolve(false);
+  CDN_EXCEL.forEach(function(url){
+    p = p.then(function(ok){
+      if(ok) return true;
+      var court = url.indexOf("http") !== 0 ? "local" : (url.indexOf("cdnjs") > -1 ? "cdnjs" : "jsdelivr");
+      return injecter(url).then(function(){
+        if(window.ExcelJS){ journalCDN.push(court + " ok"); return true; }
+        journalCDN.push(court + " chargé mais ExcelJS absent");
+        return false;
+      }).catch(function(e){
+        journalCDN.push(court + " : " + e.message);
+        return false;
+      });
+    });
+  });
+  return p;
+}
+
+/* ================= Export Excel ================= */
+var VERT = "FFE4F0E7", ROUGE = "FFFBE7E2", GRIS = "FFEDE6DB", SABLE = "FFEFE6D9";
+var T_VERT = "FF2C6E4E", T_ROUGE = "FFC5301A", T_GRIS = "FF8A7A6E";
+
+function styleVerdict(cell, v){
+  cell.alignment = {vertical:"top", horizontal:"center"};
+  if(v === "Non conforme"){
+    cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:ROUGE}};
+    cell.font = {bold:true, color:{argb:T_ROUGE}};
+  } else if(v === "Conforme"){
+    cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:VERT}};
+    cell.font = {color:{argb:T_VERT}};
+  } else if(v){
+    cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:GRIS}};
+    cell.font = {italic:true, color:{argb:T_GRIS}};
+  }
+}
+
+function entete(ws, ligne, valeurs){
+  var r = ws.getRow(ligne);
+  r.values = valeurs;
+  r.font = {bold:true, color:{argb:"FF241A17"}};
+  r.alignment = {vertical:"middle", wrapText:true};
+  r.height = 30;
+  r.eachCell(function(c){
+    c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:SABLE}};
+    c.border = {bottom:{style:"thin", color:{argb:"FFCFC0AB"}}};
+  });
+}
+
+/* Bande d'en-tête qui ouvre le bloc d'un match, pour les distinguer d'un coup d'œil. */
+function bandeauMatch(ws, ligne, derniereColonne, m, rang){
+  ws.mergeCells(ligne, 1, ligne, derniereColonne);
+  var c = ws.getCell(ligne, 1);
+  c.value = "▌  MATCH " + rang + "  —  " + m.j + "  ·  RAF x " + m.adv
+          + "  ·  " + m.jour + " " + dateFR(m.d)
+          + "  ·  match " + m.cat
+          + "  ·  " + moisLisible(moisDe(m.d));
+  c.font = {bold:true, size:11, color:{argb:"FF7B0F28"}};
+  c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFF4EDE3"}};
+  c.alignment = {vertical:"middle", indent:1};
+  c.border = {top:{style:"thin", color:{argb:"FF7B0F28"}},
+              bottom:{style:"thin", color:{argb:"FFCFC0AB"}}};
+  ws.getRow(ligne).height = 24;
+}
+
+function bandeauTitre(ws, derniereColonne, texte){
+  ws.mergeCells(1, 1, 1, derniereColonne);
+  var t = ws.getCell("A1");
+  t.value = texte;
+  t.font = {bold:true, size:13, color:{argb:"FFFDF6EC"}};
+  t.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FF7B0F28"}};
+  t.alignment = {vertical:"middle", horizontal:"left", indent:1};
+  ws.getRow(1).height = 26;
+}
+
+function nomLieu(id){
+  for(var i=0;i<LIEUX.length;i++){ if(LIEUX[i].id === id) return LIEUX[i].nom; }
+  return id;
+}
+
+function exhint(txt, err){
+  var h = $("exhint");
+  h.textContent = txt;
+  h.className = err ? "hint err" : "hint";
+}
+
+/* Deux façons de livrer un fichier : la capacité de l'artifact quand elle
+   existe, sinon le téléchargement ordinaire d'une page web autonome. */
+function telecharger(blob, nom){
+  if(DL) return DL.save({filename:nom, data:blob});
+  return new Promise(function(res, rej){
+    try{
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = nom;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        try{ document.body.removeChild(a); }catch(e){}
+        URL.revokeObjectURL(url);
+      }, 2000);
+      res({status:"saved"});
+    }catch(e){ rej(e); }
+  });
+}
+
+/* ================= Envoi au Google Sheet =================
+   Le stockage local reste la référence : on travaille sans réseau au stade.
+   Une fiche ne part que lorsqu'on valide le stand. L'envoi se fait en arrière-plan
+   et ne recharge jamais l'écran. Une validation pas encore reçue repart toute seule :
+   au retour du réseau, au retour sur l'appli et toutes les 30 s.
+   Chaque validation porte un numéro unique : un double envoi ne crée pas de doublon. */
+var CFG_CLE = "ctrlp3cfg";
+var ENV_PREFIXE = "ctrlp3env_";     /* la dernière validation de chaque fiche, tant qu'elle n'est pas reçue */
+var cfg = {url:"", cle:""};
+var envoiEnCours = false;
+
+function chargerCfg(){
+  try{
+    var o = JSON.parse(localStorage.getItem(CFG_CLE) || "{}");
+    cfg = {url:o.url || "", cle:o.cle || ""};
+  }catch(e){}
+}
+
+function heureCourte(iso){
+  var d = iso ? new Date(iso) : new Date();
+  return ("0" + d.getHours()).slice(-2) + "h" + ("0" + d.getMinutes()).slice(-2);
+}
+
+function nouvelId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* vide : jamais validée · attente : validée, pas encore reçue ·
+   modifiee : touchée après la validation · recue : le Sheet a répondu « reçu ». */
+function etatEnvoi(f){
+  if(!f || !f.valideeA) return "vide";
+  if((f.updatedAt || "") > f.valideeA) return "modifiee";
+  return (f.recueId && f.recueId === f.envoiId) ? "recue" : "attente";
+}
+
+function majEnvoi(){
+  if(!fiche || !$("envetat")) return;
+  var st = stats(fiche), e = etatEnvoi(fiche);
+  var btn = $("valbtn"), hint = $("envhint");
+  $("envetat").className = "envoi" + (e === "recue" ? " recu" : (e === "vide" ? "" : " attente"));
+  if(e === "recue"){
+    $("envtxt").innerHTML = "Reçu par le Sheet à <b>" + heureCourte(fiche.recueA) + "</b>";
+    btn.textContent = "Stand validé"; btn.disabled = true;
+  } else if(e === "attente"){
+    $("envtxt").innerHTML = "Validé à " + heureCourte(fiche.valideeA) + " · <b>pas encore reçu</b>, il partira tout seul";
+    btn.textContent = "Renvoyer maintenant"; btn.disabled = false;
+  } else if(e === "modifiee"){
+    $("envtxt").innerHTML = "Modifié après la validation · <b>à valider de nouveau</b>";
+    btn.textContent = "Valider de nouveau"; btn.disabled = false;
+  } else {
+    $("envtxt").textContent = "Pas encore validé";
+    btn.textContent = "Valider le stand"; btn.disabled = st.remplis === 0;
+  }
+  var h = "";
+  if(!cfg.url || !cfg.cle) h = "Réglages du Sheet pas encore faits (en bas de page). Tu peux valider quand même : l'envoi partira dès qu'ils seront faits.";
+  else if(e !== "recue" && st.remplis > 0 && st.reste > 0) h = st.reste + (st.reste > 1 ? " critères pas encore notés." : " critère pas encore noté.");
+  hint.textContent = h;
+  majResumeEnvoi();
+  majMarquesEnvoi();
+}
+
+/* Bilan du match affiché : combien de stands reçus, en attente, pas validés. */
+function majResumeEnvoi(){
+  toutesLesFiches().then(function(parCle){
+    var n = {recue:0, attente:0, vide:0};
+    for(var k in parCle){
+      var f = parCle[k];
+      if(f.journee !== curJ || !estRempli(f)) continue;
+      var e = etatEnvoi(f);
+      if(e === "recue") n.recue++;
+      else if(e === "vide") n.vide++;
+      else n.attente++;
+    }
+    $("envresume").innerHTML =
+        '<span class="tag">Reçus <b>' + n.recue + '</b></span>'
+      + '<span class="tag">En attente <b>' + n.attente + '</b></span>'
+      + '<span class="tag">Pas validés <b>' + n.vide + '</b></span>';
+  });
+}
+
+/* ✓ ou ↑ sur l'onglet de chaque stand, sans reconstruire la barre. */
+function majMarquesEnvoi(){
+  var chips = $("stands").querySelectorAll(".chip[data-s]");
+  for(var i=0;i<chips.length;i++){
+    (function(chip){
+      var s = chip.getAttribute("data-s");
+      var f = (fiche && fiche.journee === curJ && fiche.stand === s) ? fiche : null;
+      var suite = f ? Promise.resolve(f) : lireFiche(curJ, s, true);
+      suite.then(function(f2){
+        var e = etatEnvoi(f2);
+        if(e === "recue") chip.setAttribute("data-env", "recue");
+        else if(e === "vide") chip.removeAttribute("data-env");
+        else chip.setAttribute("data-env", "attente");
+      });
+    })(chips[i]);
+  }
+}
+
+function validerStand(){
+  if(!fiche) return;
+  var e = etatEnvoi(fiche);
+  if(e === "attente"){ envoyerTout(true); return; }
+  if(e === "recue") return;
+  if(stats(fiche).remplis === 0){ signaler("Rien à valider : aucun critère noté.", true); return; }
+  var maintenant = new Date().toISOString();
+  if(!fiche.updatedAt) fiche.updatedAt = maintenant;
+  fiche.valideeA = maintenant > fiche.updatedAt ? maintenant : fiche.updatedAt;
+  fiche.envoiId = nouvelId();
+  ecrireLocal(fiche);                 /* sans passer par sauver() : la fiche n'a pas changé */
+  try{
+    localStorage.setItem(ENV_PREFIXE + cle(fiche.journee, fiche.stand), JSON.stringify(fiche));
+  }catch(err){
+    signaler("Mémoire du téléphone pleine : la validation n'a pas pu être gardée.", true);
+    return;
+  }
+  majEnvoi();
+  envoyerTout(true);
+}
+
+function enAttente(){
+  var out = [];
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(!k || k.indexOf(ENV_PREFIXE) !== 0) continue;
+      var o = JSON.parse(localStorage.getItem(k));
+      if(o && o.envoiId) out.push(o);
+    }
+  }catch(e){}
+  return out;
+}
+
+/* Prépare le contenu d'une validation : la fiche, le verdict des sections,
+   chaque critère, et les photos (une photo déjà reçue n'est pas renvoyée). */
+function envoyerFiche(snap){
+  var j = snap.journee, s = snap.stand;
+  var lieu = snap.lieu || lieuDuStand(s);
+  var etats = snap.etats || {}, coms = snap.commentaires || {}, recues = snap.photosRecues || {};
+  var criteres = criteresDe(lieu).map(function(c){
+    return {id:c.id, section:secDe(c.sec).tag, texte:c.t, bonus:!!c.bonus,
+            etat:ETAT_LBL[etats[c.id]] || "", commentaire:coms[c.id] || ""};
+  });
+  var ids = Object.keys(snap.photos || {});
+  var photosTs = {};
+  return Promise.all(ids.map(function(cid){
+    return idbGet(pcle(j, s, cid)).then(function(ph){ return {cid:cid, ph:ph}; });
+  })).then(function(liste){
+    var photos = [];
+    liste.forEach(function(x){
+      if(!x.ph || !x.ph.data) return;
+      photosTs[x.cid] = x.ph.ts || "";
+      if(recues[x.cid] && recues[x.cid] === x.ph.ts) photos.push({id:x.cid, deja:true});
+      else photos.push({id:x.cid, data:x.ph.data});
+    });
+    var st = stats(snap);
+    var corps = {
+      cle:cfg.cle, envoiId:snap.envoiId,
+      fiche:{
+        cle:cle(j, s), journee:j, date:snap.date, adversaire:snap.adversaire, categorie:snap.categorie,
+        lieu:nomLieu(lieu), stand:nomStand(snap), exposant:snap.exposant || "",
+        superficie:snap.superficie || "", valideeA:snap.valideeA, ordre:ordreStand(s),
+        notes:st.remplis + "/" + st.total, nonConformites:st.ko
+      },
+      sections:SECTIONS.map(function(sec){ return {tag:sec.tag, verdict:verdictSection(snap, sec.id)}; }),
+      criteres:criteres, photos:photos
+    };
+    return fetch(cfg.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+                           body:JSON.stringify(corps)});
+  }).then(function(rep){
+    return rep.json();
+  }).then(function(r){
+    r.photosTs = photosTs;
+    return r;
+  });
+}
+
+function marquerRecue(snap, r){
+  var k = cle(snap.journee, snap.stand);
+  try{
+    var env = JSON.parse(localStorage.getItem(ENV_PREFIXE + k) || "null");
+    if(env && env.envoiId === snap.envoiId) localStorage.removeItem(ENV_PREFIXE + k);
+    var f = JSON.parse(localStorage.getItem(lsCle(snap.journee, snap.stand)) || "null");
+    if(!f || f.envoiId !== snap.envoiId) return;    /* revalidée entre-temps : c'est la suivante qui compte */
+    f.recueId = snap.envoiId;
+    f.recueA = r.recuA || new Date().toISOString();
+    f.photosRecues = r.photosTs || {};
+    localStorage.setItem(lsCle(snap.journee, snap.stand), JSON.stringify(f));
+    if(fiche && fiche.journee === f.journee && fiche.stand === f.stand && fiche.envoiId === f.envoiId){
+      fiche.recueId = f.recueId; fiche.recueA = f.recueA; fiche.photosRecues = f.photosRecues;
+    }
+  }catch(e){}
+}
+
+function envoyerTout(manuel){
+  if(envoiEnCours) return Promise.resolve();
+  var liste = enAttente();
+  if(!liste.length) return Promise.resolve();
+  if(!cfg.url || !cfg.cle){
+    if(manuel) signaler("Validé sur le téléphone. Fais les réglages du Sheet (en bas) pour l'envoyer.", true);
+    return Promise.resolve();
+  }
+  envoiEnCours = true;
+  if(manuel) signaler("Envoi au Sheet…", false);
+  var recues = 0, refus = "", reseau = false;
+  var chaine = Promise.resolve();
+  liste.forEach(function(snap){
+    chaine = chaine.then(function(){
+      if(reseau) return;
+      return envoyerFiche(snap).then(function(r){
+        if(r && r.ok){ recues++; marquerRecue(snap, r); }
+        else refus = (r && r.erreur) || "erreur inconnue";
+      }).catch(function(){ reseau = true; });
+    });
+  });
+  return chaine.then(function(){
+    envoiEnCours = false;
+    majEnvoi();
+    if(refus) signaler("Refusé par le Sheet : " + refus, true);
+    else if(reseau){ if(manuel) signaler("Pas de réseau : la fiche est gardée, elle partira toute seule.", false); }
+    else if(recues) signaler(recues > 1 ? recues + " fiches reçues par le Sheet" : "Fiche reçue par le Sheet", false);
+  });
+}
+
+function initReglages(){
+  chargerCfg();
+  $("regurl").value = cfg.url;
+  $("regcle").value = cfg.cle;
+  $("regtest").addEventListener("click", function(){
+    cfg = {url:$("regurl").value.trim(), cle:$("regcle").value.trim()};
+    try{ localStorage.setItem(CFG_CLE, JSON.stringify(cfg)); }catch(e){}
+    var h = $("reghint");
+    majEnvoi();
+    if(!cfg.url){ h.textContent = "Colle d'abord l'adresse du script."; h.className = "hint err"; return; }
+    h.textContent = "Test en cours…"; h.className = "hint";
+    fetch(cfg.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+                    body:JSON.stringify({cle:cfg.cle, test:true})})
+      .then(function(r){ return r.json(); })
+      .then(function(r){
+        if(r.ok){
+          h.textContent = "✓ Connecté au Sheet « " + r.classeur + " ». Réglages enregistrés sur ce téléphone.";
+          h.className = "hint";
+          envoyerTout(false);
+        } else {
+          h.textContent = "Refusé : " + (r.erreur || "erreur inconnue"); h.className = "hint err";
+        }
+      })
+      .catch(function(){
+        h.textContent = "Pas de réponse : vérifie l'adresse ou le réseau. Réglages enregistrés quand même.";
+        h.className = "hint err";
+      });
+  });
+}
+
+/* ================= Sauvegarde et transfert entre appareils ================= */
+function savhint(txt, err){
+  var h = $("savhint");
+  h.textContent = txt;
+  h.className = err ? "hint err" : "hint";
+}
+
+function exporterSauvegarde(){
+  var btn = $("savbtn");
+  btn.disabled = true;
+  savhint("Préparation de la sauvegarde…", false);
+  var fiches = {};
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf("ctrlp3_") === 0) fiches[k] = JSON.parse(localStorage.getItem(k));
+    }
+  }catch(e){}
+  toutesLesFiches().then(function(parCle){
+    for(var c in parCle){ fiches["ctrlp3_" + c] = parCle[c]; }
+    return idbTout();
+  }).then(function(photos){
+    var nf = Object.keys(fiches).length, np = Object.keys(photos).length;
+    if(!nf && !np) throw new Error("rien à sauvegarder pour l'instant");
+    var payload = {format:"controle-parvis-raf", version:1,
+                   cree:new Date().toISOString(), fiches:fiches, photos:photos};
+    var blob = new Blob([JSON.stringify(payload)], {type:"application/json"});
+    return telecharger(blob, "Sauvegarde-controle-parvis-" + new Date().toISOString().slice(0, 10) + ".json")
+      .then(function(){ savhint(nf + " fiche(s) et " + np + " photo(s) sauvegardées.", false); });
+  }).catch(function(e){
+    savhint("Sauvegarde impossible : " + ((e && e.message) || "erreur"), true);
+  }).then(function(){ btn.disabled = false; });
+}
+
+function importerSauvegarde(file){
+  savhint("Lecture du fichier…", false);
+  var fr = new FileReader();
+  fr.onerror = function(){ savhint("Fichier illisible.", true); };
+  fr.onload = function(){
+    var d;
+    try{ d = JSON.parse(fr.result); }
+    catch(e){ savhint("Ce fichier n'est pas une sauvegarde valide.", true); return; }
+    if(!d || !d.fiches){ savhint("Ce fichier n'est pas une sauvegarde de l'outil.", true); return; }
+
+    var nf = 0, np = 0;
+    for(var k in d.fiches){
+      var inc = d.fiches[k];
+      if(!inc || !inc.journee || !inc.stand) continue;
+      var cle2 = "ctrlp3_" + inc.journee + "__" + inc.stand;
+      var cur = null;
+      try{ var raw = localStorage.getItem(cle2); if(raw) cur = JSON.parse(raw); }catch(e){}
+      if(cur && (cur.updatedAt || "") >= (inc.updatedAt || "")) continue;
+      try{ localStorage.setItem(cle2, JSON.stringify(inc)); nf++; }catch(e){}
+      if(DB){
+        try{ DB.doc("controles/" + inc.journee + "__" + inc.stand)
+               .set(JSON.parse(JSON.stringify(inc))).catch(function(){}); }catch(e){}
+      }
+    }
+    var ph = d.photos || {};
+    for(var pk in ph){
+      if(!ph[pk] || !ph[pk].data) continue;
+      idbPut(pk, ph[pk]); np++;
+      if(DB){ try{ DB.doc("photos/" + pk).set(ph[pk]).catch(function(){}); }catch(e){} }
+    }
+    savhint(nf + " fiche(s) et " + np + " photo(s) importées.", false);
+    charger();
+    majResumeExport();
+  };
+  fr.readAsText(file);
+}
+
+function exporter(){
+  var btn = $("exbtn");
+  if(btn.disabled && !btn.dataset.run) return;
+  btn.disabled = true;
+  btn.textContent = "Bibliothèque…";
+  exhint("Chargement de la bibliothèque Excel…", false);
+
+  chargerExcelJS().then(function(ok){
+    if(!ok){
+      throw new Error("bibliothèque Excel indisponible (" + journalCDN.join(" ; ") + ")");
+    }
+    btn.textContent = "Lecture…";
+    exhint("Lecture des fiches…", false);
+    return toutesLesFiches();
+  }).then(function(parCle){
+    var parMatch = {};
+    for(var k in parCle){
+      var f = parCle[k];
+      if(!estRempli(f)) continue;
+      (parMatch[f.journee] = parMatch[f.journee] || []).push(f);
+    }
+    var journees = MATCHS.map(function(m){ return m.j; }).filter(function(j){ return parMatch[j]; });
+    if(!journees.length) throw new Error("aucune fiche remplie à exporter");
+
+    var besoins = [];
+    journees.forEach(function(j){
+      parMatch[j].forEach(function(f){
+        for(var cid in (f.photos || {})){
+          besoins.push(pcle(f.journee, f.stand, cid));
+        }
+      });
+    });
+    btn.textContent = "Photos…";
+    exhint("Récupération de " + besoins.length + " photo(s)…", false);
+
+    var images = {}, chaine = Promise.resolve();
+    besoins.forEach(function(k){
+      chaine = chaine.then(function(){
+        return getPhoto(k).then(function(ph){ if(ph && ph.data) images[k] = ph; });
+      });
+    });
+    return chaine.then(function(){
+      btn.textContent = "Écriture…";
+      exhint("Construction du classeur…", false);
+      return construireClasseur(journees, parMatch, images);
+    });
+  }).then(function(blob){
+    var nom = "Controle-exposants-parvis-" + new Date().toISOString().slice(0, 10) + ".xlsx";
+    return telecharger(blob, nom);
+  }).then(function(res){
+    fin(btn);
+    if(res && res.status === "saved") exhint("Fichier Excel enregistré.", false);
+    else exhint("Fichier transmis.", false);
+  }).catch(function(e){
+    fin(btn);
+    var code = e && e.code ? e.code : "";
+    if(code === "declined"){ exhint("Téléchargement annulé.", false); return; }
+    var msg = (e && e.message) || code || "erreur inconnue";
+    if(code && e.message) msg = code + " — " + e.message;
+    exhint("Export impossible : " + msg, true);
+    signaler("Export : " + msg, true);
+  });
+}
+
+function fin(btn){
+  btn.textContent = "Générer le fichier Excel";
+  btn.disabled = false;
+  majResumeExport();
+}
+
+function construireClasseur(journees, parMatch, images){
+  var wb = new ExcelJS.Workbook();
+  wb.creator = "Contrôle parvis RAF";
+  wb.created = new Date();
+
+  /* Toutes les fiches, dans l'ordre du calendrier puis des emplacements. */
+  var toutes = [];
+  journees.forEach(function(j){
+    parMatch[j].slice().sort(function(a, b){ return ordreStand(a.stand) - ordreStand(b.stand); })
+      .forEach(function(f){ toutes.push(f); });
+  });
+
+  /* ---------- Onglet 1 : Suivi conformité ---------- */
+  var sy = wb.addWorksheet("Suivi conformité");
+  sy.columns = [
+    {width:11}, {width:28}, {width:14}, {width:22}, {width:19},
+    {width:19}, {width:19}, {width:20}, {width:15}, {width:9}
+  ];
+  bandeauTitre(sy, 10, "SUIVI DE CONFORMITÉ DES EXPOSANTS — SAISON 2026-2027");
+  entete(sy, 3, [
+    "Lieu", "Exposant", "Superficie (m²)", "Horaires & « zéro espèces »",
+    "§7 Label LFP", "§8 Installation", "§9 Propreté",
+    "Thématisation (bonus)", "Non-conformités", "Photos"
+  ]);
+
+  var r = 4, rang = 0;
+  journees.forEach(function(j){
+    rang++;
+    bandeauMatch(sy, r, 10, matchDe(j), rang);
+    r++;
+
+    parMatch[j].slice().sort(function(a, b){ return ordreStand(a.stand) - ordreStand(b.stand); })
+      .forEach(function(f){
+        var lieu = f.lieu || lieuDuStand(f.stand);
+        var vg = verdictSection(f, "gen"), v7 = verdictSection(f, "s7");
+        var v8 = verdictSection(f, "s8"), v9 = verdictSection(f, "s9");
+        var them = (f.etats && f.etats.c17) ? ETAT_LBL[f.etats.c17] : "";
+        var nbKo = 0, nbPh = 0;
+        criteresDe(lieu).forEach(function(c){
+          if(!c.bonus && f.etats && f.etats[c.id] === "ko") nbKo++;
+          if(f.photos && f.photos[c.id]) nbPh++;
+        });
+
+        var row = sy.getRow(r);
+        row.values = [
+          nomLieu(lieu), f.exposant || "",
+          f.superficie === "" || f.superficie === undefined ? "" : Number(f.superficie),
+          vg, v7, v8, v9, them, nbKo, nbPh
+        ];
+        row.alignment = {vertical:"top", wrapText:true};
+        [1, 3, 9, 10].forEach(function(c){
+          row.getCell(c).alignment = {vertical:"top", horizontal:"center"};
+        });
+        styleVerdict(row.getCell(4), vg);
+        styleVerdict(row.getCell(5), v7);
+        styleVerdict(row.getCell(6), v8);
+        styleVerdict(row.getCell(7), v9);
+        row.getCell(8).alignment = {vertical:"top", horizontal:"center"};
+        if(them === "Conforme"){
+          row.getCell(8).fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFFBF1DC"}};
+          row.getCell(8).font = {color:{argb:"FF8A6A12"}};
+        } else if(them === "Non conforme"){
+          row.getCell(8).font = {italic:true, color:{argb:T_GRIS}};
+        }
+        if(nbKo > 0) row.getCell(9).font = {bold:true, color:{argb:T_ROUGE}};
+        r++;
+      });
+    r++; /* respiration entre deux matchs */
+  });
+
+  sy.views = [{state:"frozen", ySplit:3}];
+
+  /* ---------- Onglet 2 : Détail ---------- */
+  var de = wb.addWorksheet("Détail");
+  de.columns = [
+    {width:11}, {width:26}, {width:9}, {width:52}, {width:15}, {width:46}, {width:20}
+  ];
+  bandeauTitre(de, 7, "DÉTAIL DES CONTRÔLES — CRITÈRE PAR CRITÈRE");
+  entete(de, 3, ["Lieu", "Exposant", "Section", "Critère", "État", "Commentaire", "Photo"]);
+
+  var d = 4, rangD = 0;
+  journees.forEach(function(j){
+    rangD++;
+    bandeauMatch(de, d, 7, matchDe(j), rangD);
+    d++;
+
+    parMatch[j].slice().sort(function(a, b){ return ordreStand(a.stand) - ordreStand(b.stand); })
+      .forEach(function(f){
+        var lieu = f.lieu || lieuDuStand(f.stand);
+        criteresDe(lieu).forEach(function(c){
+          var et = (f.etats && f.etats[c.id]) || "";
+          var com = (f.commentaires && f.commentaires[c.id]) || "";
+          var aPhoto = !!(f.photos && f.photos[c.id]);
+          var ph = aPhoto ? images[pcle(f.journee, f.stand, c.id)] : null;
+
+          var row = de.getRow(d);
+          row.values = [
+            nomLieu(lieu), f.exposant || "",
+            secDe(c.sec).tag, c.t + (c.bonus ? "  (bonus)" : ""),
+            et ? ETAT_LBL[et] : "", com,
+            (aPhoto && !ph) ? "photo absente de cet appareil" : ""
+          ];
+          row.alignment = {vertical:"top", wrapText:true};
+          [1, 3, 5].forEach(function(k){
+            row.getCell(k).alignment = {vertical:"top", horizontal:"center"};
+          });
+
+          if(et === "ko"){
+            if(c.bonus){
+              row.getCell(5).font = {italic:true, color:{argb:T_GRIS}};
+            } else {
+              row.getCell(5).fill = {type:"pattern", pattern:"solid", fgColor:{argb:ROUGE}};
+              row.getCell(5).font = {bold:true, color:{argb:T_ROUGE}};
+            }
+          } else if(et === "ok"){
+            row.getCell(5).fill = {type:"pattern", pattern:"solid", fgColor:{argb:VERT}};
+            row.getCell(5).font = {color:{argb:T_VERT}};
+          } else if(et === "na"){
+            row.getCell(5).font = {color:{argb:T_GRIS}};
+          }
+
+          row.height = 18;
+          if(ph && ph.data){
+            var b64 = ph.data.indexOf(",") > -1 ? ph.data.split(",")[1] : ph.data;
+            var idImg = wb.addImage({base64:b64, extension:"jpeg"});
+            var pw = 120, phh = 90;
+            if(ph.w && ph.h){
+              phh = Math.round(pw * ph.h / ph.w);
+              if(phh > 130){ phh = 130; pw = Math.round(phh * ph.w / ph.h); }
+            }
+            de.addImage(idImg, {tl:{col:6.1, row:(d - 1) + 0.1}, ext:{width:pw, height:phh}});
+            row.height = Math.max(18, phh * 0.78);
+          }
+          d++;
+        });
+        d++; /* ligne vide entre deux exposants */
+      });
+  });
+
+  de.views = [{state:"frozen", ySplit:3}];
+
+  /* ---------- Onglet 3 : Synthèse ---------- */
+  construireSynthese(wb, journees, parMatch, toutes);
+
+  /* ---------- Onglet 4 : Données à coller ----------
+     Version à plat, sans bande d'en-tête, destinée à l'onglet « Suivi conformité »
+     du classeur Suivi_Parvis_Exposants_Repas, qui en tire la facturation. */
+  var dc = wb.addWorksheet("Données à coller");
+  dc.columns = [{width:9},{width:16},{width:10},{width:26},{width:13},{width:20},
+                {width:16},{width:16},{width:14},{width:16},{width:14},{width:9}];
+  bandeauTitre(dc, 12, "DONNÉES À PLAT — à coller dans l'onglet « Suivi conformité » du suivi de facturation");
+  dc.getCell("A2").value = "Copie les lignes ci-dessous à partir de la ligne 4, puis colle-les en ligne 4 "
+    + "de l'onglet « Suivi conformité » du classeur Suivi_Parvis_Exposants_Repas. "
+    + "L'onglet Facturation se recalcule seul.";
+  dc.mergeCells("A2:L2");
+  dc.getCell("A2").font = {italic:true, size:10, color:{argb:T_GRIS}};
+  dc.getCell("A2").alignment = {vertical:"middle", wrapText:true};
+  dc.getRow(2).height = 26;
+  entete(dc, 3, ["Journée", "Mois", "Lieu", "Exposant", "Superficie (m²)",
+                 "Horaires & « zéro espèces »", "§7 Label LFP", "§8 Installation",
+                 "§9 Propreté", "Thématisation (bonus)", "Non-conformités", "Photos"]);
+
+  var p = 4;
+  toutes.forEach(function(f){
+    var m = matchDe(f.journee);
+    var lieu = f.lieu || lieuDuStand(f.stand);
+    var nbKo = 0, nbPh = 0;
+    criteresDe(lieu).forEach(function(c){
+      if(!c.bonus && f.etats && f.etats[c.id] === "ko") nbKo++;
+      if(f.photos && f.photos[c.id]) nbPh++;
+    });
+    var row = dc.getRow(p);
+    row.values = [
+      f.journee, moisLisible(moisDe(m.d)), nomLieu(lieu), f.exposant || "",
+      f.superficie === "" || f.superficie === undefined ? "" : Number(f.superficie),
+      verdictSection(f, "gen"), verdictSection(f, "s7"),
+      verdictSection(f, "s8"), verdictSection(f, "s9"),
+      (f.etats && f.etats.c17) ? ETAT_LBL[f.etats.c17] : "",
+      nbKo, nbPh
+    ];
+    [1, 2, 5, 11, 12].forEach(function(c){
+      row.getCell(c).alignment = {horizontal:"center"};
+    });
+    p++;
+  });
+  dc.views = [{state:"frozen", ySplit:3}];
+  dc.autoFilter = {from:{row:3, column:1}, to:{row:3, column:12}};
+
+  return wb.xlsx.writeBuffer().then(function(buf){
+    return new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  });
+}
+
+var MOIS_FR = ["janvier","février","mars","avril","mai","juin",
+               "juillet","août","septembre","octobre","novembre","décembre"];
+
+function moisDe(d){ return d.slice(0, 7); }
+function moisLisible(mois){
+  var n = MOIS_FR[parseInt(mois.slice(5, 7), 10) - 1];
+  return n.charAt(0).toUpperCase() + n.slice(1) + " " + mois.slice(0, 4);
+}
+
+/* Nombre de manquements d'une fiche, hors critères bonus. */
+function manquements(f){
+  var lieu = f.lieu || lieuDuStand(f.stand), n = 0;
+  criteresDe(lieu).forEach(function(c){
+    if(!c.bonus && f.etats && f.etats[c.id] === "ko") n++;
+  });
+  return n;
+}
+
+/* Une fiche est complète quand chaque critère non bonus a reçu un état. */
+function ficheComplete(f){
+  var lieu = f.lieu || lieuDuStand(f.stand), liste = criteresDe(lieu), etats = f.etats || {};
+  for(var i=0;i<liste.length;i++){
+    if(!liste[i].bonus && !etats[liste[i].id]) return false;
+  }
+  return true;
+}
+
+/* ================= Export des photos en ZIP =================
+   Écriture d'une archive sans compression : les JPEG le sont déjà, et cela
+   évite d'embarquer une bibliothèque de plus dans la page. */
+var CRC_TABLE = null;
+function crcTable(){
+  if(CRC_TABLE) return CRC_TABLE;
+  CRC_TABLE = new Int32Array(256);
+  for(var n=0;n<256;n++){
+    var c = n;
+    for(var k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    CRC_TABLE[n] = c;
+  }
+  return CRC_TABLE;
+}
+function crc32(buf){
+  var t = crcTable(), c = -1;
+  for(var i=0;i<buf.length;i++) c = t[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ -1) >>> 0;
+}
+function octetsUtf8(s){
+  if(window.TextEncoder) return new TextEncoder().encode(s);
+  var u = unescape(encodeURIComponent(s)), a = new Uint8Array(u.length);
+  for(var i=0;i<u.length;i++) a[i] = u.charCodeAt(i);
+  return a;
+}
+function dataUrlOctets(d){
+  var b64 = d.indexOf(",") > -1 ? d.split(",")[1] : d;
+  var bin = atob(b64), u = new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+function zipSansCompression(fichiers){
+  var dt = new Date();
+  var heureDos = (dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1);
+  var dateDos = ((dt.getFullYear() - 1980) << 9) | ((dt.getMonth() + 1) << 5) | dt.getDate();
+
+  var corps = [], central = [], offset = 0;
+  fichiers.forEach(function(f){
+    var nom = octetsUtf8(f.name), data = f.data, crc = crc32(data);
+
+    var lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true);
+    lh.setUint16(4, 20, true);
+    lh.setUint16(6, 0x0800, true);          /* nom encodé en UTF-8 */
+    lh.setUint16(8, 0, true);               /* méthode : stocké */
+    lh.setUint16(10, heureDos, true);
+    lh.setUint16(12, dateDos, true);
+    lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true);
+    lh.setUint32(22, data.length, true);
+    lh.setUint16(26, nom.length, true);
+    lh.setUint16(28, 0, true);
+    corps.push(new Uint8Array(lh.buffer), nom, data);
+
+    var ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true);
+    ch.setUint16(4, 20, true);
+    ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true);
+    ch.setUint16(10, 0, true);
+    ch.setUint16(12, heureDos, true);
+    ch.setUint16(14, dateDos, true);
+    ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true);
+    ch.setUint32(24, data.length, true);
+    ch.setUint16(28, nom.length, true);
+    ch.setUint16(30, 0, true);
+    ch.setUint16(32, 0, true);
+    ch.setUint16(34, 0, true);
+    ch.setUint16(36, 0, true);
+    ch.setUint32(38, 0, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), nom);
+
+    offset += 30 + nom.length + data.length;
+  });
+
+  var tailleCentral = 0;
+  central.forEach(function(p){ tailleCentral += p.length; });
+
+  var eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true);
+  eo.setUint16(4, 0, true);
+  eo.setUint16(6, 0, true);
+  eo.setUint16(8, fichiers.length, true);
+  eo.setUint16(10, fichiers.length, true);
+  eo.setUint32(12, tailleCentral, true);
+  eo.setUint32(16, offset, true);
+  eo.setUint16(20, 0, true);
+
+  return new Blob(corps.concat(central, [new Uint8Array(eo.buffer)]), {type:"application/zip"});
+}
+
+function nomSain(s){
+  return String(s === null || s === undefined ? "" : s)
+    .replace(/[\\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function exporterPhotos(){
+  var btn = $("photobtn");
+  btn.disabled = true;
+  var libelle = btn.textContent;
+  btn.textContent = "Recherche…";
+  exhint("Recherche des photos enregistrées…", false);
+
+  toutesLesFiches().then(function(parCle){
+    var cibles = [];
+    var journees = MATCHS.map(function(m){ return m.j; });
+    journees.forEach(function(j){
+      STANDS.forEach(function(s){
+        var f = parCle[cle(j, s.id)];
+        if(!f || !f.photos) return;
+        var lieu = f.lieu || lieuDuStand(f.stand);
+        criteresDe(lieu).forEach(function(c, i){
+          if(!f.photos[c.id]) return;
+          cibles.push({k:pcle(j, s.id, c.id), j:j, f:f, c:c, rang:i + 1, lieu:lieu});
+        });
+      });
+    });
+    if(!cibles.length) throw new Error("aucune photo enregistrée pour l'instant");
+
+    btn.textContent = "Photos…";
+    exhint("Lecture de " + cibles.length + " photo(s)…", false);
+
+    var fichiers = [], chaine = Promise.resolve();
+    cibles.forEach(function(b){
+      chaine = chaine.then(function(){
+        return getPhoto(b.k).then(function(ph){
+          if(!ph || !ph.data) return;
+          var m = matchDe(b.j);
+          var dossier = nomSain(b.j + " - RAF x " + m.adv + " - " + dateFR(m.d).replace(/\//g, "-"));
+          var sous = nomSain(nomLieu(b.lieu) + " - " + (b.f.exposant || nomStand(b.f)));
+          var deuxChiffres = (b.rang < 10 ? "0" : "") + b.rang;
+          var nom = nomSain(deuxChiffres + " - " + secDe(b.c.sec).tag + " - " + b.c.t) + ".jpg";
+          fichiers.push({name:dossier + "/" + sous + "/" + nom, data:dataUrlOctets(ph.data)});
+        });
+      });
+    });
+
+    return chaine.then(function(){
+      if(!fichiers.length) throw new Error("les photos ne sont pas sur cet appareil");
+      btn.textContent = "Archive…";
+      exhint("Construction de l'archive…", false);
+      var blob = zipSansCompression(fichiers);
+      var nom = "Photos-controle-parvis-" + new Date().toISOString().slice(0, 10) + ".zip";
+      return telecharger(blob, nom).then(function(){
+        exhint(fichiers.length + " photo(s) exportées, rangées par match puis par exposant.", false);
+      });
+    });
+  }).catch(function(e){
+    var code = e && e.code ? e.code : "";
+    if(code === "declined"){
+      exhint("Téléchargement annulé.", false);
+    } else if(code === "rejected_extension" || code === "extension_not_enabled"){
+      exhint("L'archive ZIP ne peut pas être enregistrée depuis cette vue. "
+           + "Utilise la version hébergée de l'outil, l'export y fonctionne.", true);
+    } else {
+      exhint("Export des photos impossible : " + ((e && e.message) || code || "erreur"), true);
+    }
+  }).then(function(){
+    btn.disabled = false;
+    btn.textContent = libelle;
+  });
+}
+
+function construireSynthese(wb, journees, parMatch, toutes){
+  var sn = wb.addWorksheet("Synthèse");
+  sn.columns = [{width:11}, {width:28}, {width:18}, {width:13}, {width:18},
+                {width:16}, {width:22}, {width:24}];
+
+  bandeauTitre(sn, 8, "SYNTHÈSE — BILAN PAR MATCH ET DROIT À LA REMISE");
+  sn.getCell("A2").value = "La remise « bonne conduite » du §10 va jusqu'à 10 % sur les droits de place "
+    + "du mois suivant. Un seul manquement dans le mois la fait perdre. "
+    + "La thématisation est un bonus, elle n'entre pas dans ce calcul.";
+  sn.getCell("A2").font = {italic:true, size:10, color:{argb:T_GRIS}};
+  sn.mergeCells("A2:H2");
+  sn.getRow(2).height = 28;
+  sn.getCell("A2").alignment = {vertical:"middle", wrapText:true};
+
+  /* ---- ① Bilan par match ---- */
+  var r = 4;
+  sousTitre(sn, r, 8, "①  BILAN PAR MATCH");
+  r += 1;
+  entete(sn, r, ["Journée", "Match", "Mois", "Catégorie",
+                 "Exposants suivis", "Manquements", "Match 100 % conforme ?", ""]);
+  r += 1;
+
+  journees.forEach(function(j){
+    var m = matchDe(j), fiches = parMatch[j];
+    var nbKo = 0, complet = true;
+    fiches.forEach(function(f){
+      nbKo += manquements(f);
+      if(!ficheComplete(f)) complet = false;
+    });
+    var verdict = !complet ? "⏳ En cours" : (nbKo === 0 ? "✅ Oui" : "❌ Non");
+    var row = sn.getRow(r);
+    row.values = [j, "RAF x " + m.adv, moisLisible(moisDe(m.d)), m.cat,
+                  fiches.length, nbKo, verdict, ""];
+    row.alignment = {vertical:"middle"};
+    [1, 4, 5, 6, 7].forEach(function(c){
+      row.getCell(c).alignment = {vertical:"middle", horizontal:"center"};
+    });
+    if(nbKo > 0) row.getCell(6).font = {bold:true, color:{argb:T_ROUGE}};
+    styleVerdict(row.getCell(7), !complet ? "Incomplet" : (nbKo === 0 ? "Conforme" : "Non conforme"));
+    row.getCell(7).alignment = {vertical:"middle", horizontal:"center"};
+    r++;
+  });
+
+  /* ---- ② Droit à la remise, par mois et par exposant ---- */
+  r += 2;
+  sousTitre(sn, r, 8, "②  DROIT À LA REMISE — PAR MOIS ET PAR EXPOSANT");
+  r += 1;
+  entete(sn, r, ["Mois", "Exposant", "Lieu", "Matchs suivis",
+                 "Manquements", "Fiches complètes", "Remise mois suivant", "Motif"]);
+  r += 1;
+
+  /* Regroupement (mois, exposant) : la remise se juge sur le mois entier. */
+  var groupes = {}, ordre = [];
+  toutes.forEach(function(f){
+    var nom = (f.exposant || "").trim();
+    if(!nom) return;
+    var m = matchDe(f.journee), mois = moisDe(m.d);
+    var k = mois + "|" + nom;
+    if(!groupes[k]){
+      groupes[k] = {mois:mois, nom:nom, lieu:f.lieu || lieuDuStand(f.stand),
+                    matchs:[], ko:0, incomplets:0};
+      ordre.push(k);
+    }
+    var g = groupes[k];
+    if(g.matchs.indexOf(f.journee) < 0) g.matchs.push(f.journee);
+    g.ko += manquements(f);
+    if(!ficheComplete(f)) g.incomplets++;
+  });
+
+  ordre.sort(function(a, b){
+    var ga = groupes[a], gb = groupes[b];
+    if(ga.mois !== gb.mois) return ga.mois < gb.mois ? -1 : 1;
+    return ga.nom.localeCompare(gb.nom, "fr");
+  });
+
+  ordre.forEach(function(k){
+    var g = groupes[k];
+    var droit = g.ko === 0 && g.incomplets === 0;
+    var verdict = g.incomplets ? "⏳ À compléter" : (droit ? "✅ Oui" : "❌ Non");
+    var motif = g.incomplets
+      ? (g.incomplets + " fiche(s) incomplète(s)")
+      : (droit ? "Aucun manquement sur le mois"
+               : g.ko + " manquement" + (g.ko > 1 ? "s" : "") + " constaté" + (g.ko > 1 ? "s" : ""));
+
+    var row = sn.getRow(r);
+    row.values = [moisLisible(g.mois), g.nom, nomLieu(g.lieu),
+                  g.matchs.sort().join(" · "), g.ko,
+                  g.incomplets ? "non" : "oui", verdict, motif];
+    row.alignment = {vertical:"middle", wrapText:true};
+    [3, 5, 6, 7].forEach(function(c){
+      row.getCell(c).alignment = {vertical:"middle", horizontal:"center"};
+    });
+    if(g.ko > 0) row.getCell(5).font = {bold:true, color:{argb:T_ROUGE}};
+    styleVerdict(row.getCell(7), g.incomplets ? "Incomplet" : (droit ? "Conforme" : "Non conforme"));
+    row.getCell(7).alignment = {vertical:"middle", horizontal:"center"};
+    row.getCell(8).font = {italic:true, size:10, color:{argb:T_GRIS}};
+    r++;
+  });
+
+  sn.views = [{state:"frozen", ySplit:2}];
+}
+
+function sousTitre(ws, ligne, derniereColonne, texte){
+  ws.mergeCells(ligne, 1, ligne, derniereColonne);
+  var c = ws.getCell(ligne, 1);
+  c.value = texte;
+  c.font = {bold:true, size:11, color:{argb:"FF7B0F28"}};
+  c.alignment = {vertical:"middle", indent:1};
+  ws.getRow(ligne).height = 22;
+}
+
+/* ================= Démarrage ================= */
+window.addEventListener("error", function(e){
+  signaler("Erreur : " + (e && e.message ? e.message : "inconnue"), true);
+});
+
+curJ = prochainMatch();
+curStand = premierStandDispo();
+fiche = vide(curJ, curStand);
+renderSheet();
+majBandeauMatch();
+renderBlocs(curLieu);
+renderLieux();
+renderStands();
+$("expname").value = fiche.exposant || "";
+peindre();
+
+$("mpick").addEventListener("click", ouvrirSheet);
+$("prevm").addEventListener("click", function(){ decaleMatch(-1); });
+$("nextm").addEventListener("click", function(){ decaleMatch(1); });
+document.addEventListener("keydown", function(e){
+  if(e.key !== "Escape") return;
+  if(!$("sheet").hidden) fermerSheet();
+});
+$("expname").addEventListener("input", function(){
+  fiche.exposant = this.value; sauver(); majEtiquetteStand();
+});
+$("standnom").addEventListener("input", function(){
+  fiche.standNom = this.value; sauver(); majEtiquetteStand();
+});
+
+/* Met à jour l'étiquette de l'onglet sans reconstruire toute la barre,
+   pour ne pas perdre le focus pendant la frappe. */
+function majEtiquetteStand(){
+  var chip = document.querySelector('.chip[data-s="' + fiche.stand + '"]');
+  if(!chip) return;
+  var dot = chip.querySelector(".dot");
+  chip.textContent = "";
+  if(dot) chip.appendChild(dot);
+  chip.appendChild(document.createTextNode(
+    fiche.exposant || (nomStand(fiche) + " · libre")));
+}
+
+$("exbtn").addEventListener("click", exporter);
+$("photobtn").addEventListener("click", exporterPhotos);
+$("savbtn").addEventListener("click", exporterSauvegarde);
+
+$("valbtn").addEventListener("click", validerStand);
+initReglages();
+majEnvoi();
+
+/* Reprise des validations pas encore reçues, sans jamais toucher à l'écran. */
+window.addEventListener("online", function(){ envoyerTout(false); });
+document.addEventListener("visibilitychange", function(){ if(!document.hidden) envoyerTout(false); });
+setInterval(function(){ envoyerTout(false); }, 30000);
+
+/* Garde l'appli dans le téléphone pour l'ouvrir sans réseau au stade. */
+if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+
+$("impfile").addEventListener("change", function(){
+  var f = this.files && this.files[0];
+  this.value = "";
+  if(f) importerSauvegarde(f);
+});
+$("quickxls").addEventListener("click", function(){
+  var s = $("exbtn");
+  if(s && s.scrollIntoView) s.scrollIntoView({block:"center"});
+  s.dataset.run = "1";
+  exporter();
+  delete s.dataset.run;
+});
+
+$("foot").innerHTML = "Grille établie d'après le <em>Cahier des charges Exposants — Parvis, saison 2026-2027</em>, "
+  + "sections 7 (Label Restauration LFP), 8 (règles d'installation) et 9 (propreté et déchets). "
+  + "Rotation des exposants d'après <em>Rotation-exposants-2627.xlsx</em>. "
+  + "Les contrôles sont enregistrés sur le téléphone, puis envoyés au Google Sheet quand tu valides le stand ; "
+  + "les photos sont réduites à 1000 px pour rester légères sur le réseau du stade.";
+
+etatSauvegarde("");
+
+idbOpen(function(){
+  if(window.claude && typeof window.claude.use === "function"){
+    window.claude.use("db").then(function(db){
+      DB = db;
+      etatSauvegarde(db ? "ok" : "hors");
+      if(editSeq === 0) charger();
+      else majPastilles();
+    }).catch(function(){ etatSauvegarde("hors"); });
+    window.claude.use("downloads").then(function(dl){ DL = dl; }).catch(function(){});
+  } else {
+    /* Recharge la fiche gardée sur le téléphone : sans cela, la première fiche
+       s'afficherait vide à la réouverture de l'appli. */
+    charger().then(function(){ envoyerTout(false); });
+  }
+});
+</script>
+</body>
+</html>
